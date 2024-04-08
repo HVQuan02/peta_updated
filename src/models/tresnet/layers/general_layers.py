@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import pdb
 
 from src.models.tresnet.layers.avg_pool import FastAvgPool2d
 
@@ -54,6 +55,7 @@ class SpaceToDepth(nn.Module):
 class SpaceToDepthJit(object):
     def __call__(self, x: torch.Tensor):
         # assuming hard-coded that block_size==4 for acceleration
+        pdb.set_trace()
         N, C, H, W = x.size()
         x = x.view(N, C, H // 4, 4, W // 4, 4)  # (N, C, H//bs, bs, W//bs, bs)
         x = x.permute(0, 3, 5, 1, 2, 4).contiguous()  # (N, bs, bs, C, H//bs, W//bs)

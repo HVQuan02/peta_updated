@@ -13,7 +13,7 @@ parser.add_argument('--model_path', type=str, default='./models_local/peta_32.pt
 parser.add_argument('--model_name', type=str, default='mtresnetaggregate')
 parser.add_argument('--num_classes', type=int, default=23)
 parser.add_argument('--dataset', default='cufed', choices=['cufed', 'pec', 'holiday'])
-parser.add_argument('--dataset_path', type=str, default='./data/ML_CUFED') # change
+parser.add_argument('--dataset_path', type=str, default='/cc') # change
 parser.add_argument('--dataset_type', type=str, default='ML_CUFED')
 parser.add_argument('--batch_size', type=int, default=64, help='batch size')
 parser.add_argument('--transform_type', type=str, default='squish')
@@ -27,7 +27,6 @@ parser.add_argument('--album_clip_length', type=int, default=32)
 parser.add_argument('--remove_model_jit', type=int, default=None)
 parser.add_argument('--use_transformer', type=int, default=1)
 parser.add_argument('--transformers_pos', type=int, default=1)
-parser.add_argument('--transform_type', type=str, default='squish')
 parser.add_argument('--path_output', type=str, default='./outputs')
 args = parser.parse_args()
 
@@ -54,7 +53,7 @@ def evaluate(model, dataset, loader, scores, out_file, device):
 
 def main():
   if args.dataset == 'cufed':
-    dataset = CUFED(root_dir=args.dataset_root, is_train=False, img_size=args.img_size, album_clip_length=args.album_clip_length)
+    dataset = CUFED(root_dir=args.dataset_path, is_train=False, img_size=args.img_size, album_clip_length=args.album_clip_length)
   device = torch.device('cuda:0')
   val_loader = DataLoader(dataset, batch_size=args.batch_size, num_workers=args.num_workers)
 
@@ -69,7 +68,7 @@ def main():
   model.load_state_dict(state['model'], strict=True)
 
   num_test = len(dataset)
-  scores = torch.zeros((num_test, dataset.NUM_CLASS), dtype=torch.float32)
+  scores = torch.zeros((num_test, len(dataset.event_labels)), dtype=torch.float32)
 
   t0 = time.perf_counter()
   evaluate(model, dataset, val_loader, scores, out_file, device)
