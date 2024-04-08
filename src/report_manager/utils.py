@@ -9,7 +9,7 @@ class AccumMetricG(Metric):
 
     def __init__(self, func, dim_argmax=None, sigmoid=False, thresh=None, to_np=False, invert_arg=False,
                  flatten=True):
-        store_attr(self,'func,dim_argmax,sigmoid,thresh,flatten')
+        store_attr('func,dim_argmax,sigmoid,thresh,flatten')
         self.to_np,self.invert_args = to_np, invert_arg
         self.album_voting = 'attention'
         self.reset()
@@ -97,7 +97,7 @@ def accuracy(inp, targ, axis=-1):
 
 def average_precision(output, target):
     # sort examples
-    indices = output.argsort()[::-1]
+    indices = torch.flip(output.argsort(), [0])
     # Computes prec@i
     total_count_ = np.cumsum(np.ones((len(output), 1)))
 

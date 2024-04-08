@@ -146,7 +146,7 @@ def validate(model, val_loader, classes_list, threshold):
       thresh = 0.6
       logits = model(input)
       preds = torch.sigmoid(logits)
-      np.where(preds > thresh)[0]
+      np.where(preds.cpu() > thresh)[0]
 
       # map
       # logits = model(output, filenames=filenames)
