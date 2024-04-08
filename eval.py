@@ -11,7 +11,7 @@ parser = argparse.ArgumentParser(description='Photo Album Event Recognition')
 # parser.add_argument('model', nargs=1, help='trained model')
 # parser.add_argument('--gcn_layers', type=int, default=2, help='number of gcn layers')
 parser.add_argument('--dataset', default='cufed', choices=['cufed', 'pec', 'holiday'])
-# parser.add_argument('--dataset_root', default='/home/dimidask/Projects/FCVID', help='dataset root directory')
+parser.add_argument('--dataset_root', default='/content/drive/MyDrive/CUFED-Event-Image/CUFED', help='dataset root directory')
 parser.add_argument('--batch_size', type=int, default=64, help='batch size')
 # parser.add_argument('--num_objects', type=int, default=50, help='number of objects with best DoC')
 parser.add_argument('--num_workers', type=int, default=2, help='number of workers for data loader')
@@ -49,7 +49,7 @@ args = parser.parse_args()
 
 def main():
   if args.dataset == 'cufed':
-    dataset = CUFED(args.dataset_root, is_train=False, args.img_size, args.album_clip_length)
+    dataset = CUFED(root_dir=args.dataset_root, is_train=False, img_size=args.img_size, album_clip_length=args.album_clip_length)
   # device = torch.device('cuda:0')
   print(len(dataset))
   val_loader = DataLoader(dataset, batch_size=args.batch_size, num_workers=args.num_workers)

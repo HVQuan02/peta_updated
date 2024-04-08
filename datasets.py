@@ -46,7 +46,7 @@ class CUFED(Dataset):
             album_names = f.readlines()
         vidname_list = [name.strip() for name in album_names]
 
-        labels_np = np.zeros((len(vidname_list), self.NUM_CLASS), dtype=np.float32)
+        labels_np = np.zeros((len(vidname_list), len(self.event_labels)), dtype=np.float32)
 
         for i, vidname in enumerate(vidname_list):
             for lbl in album_data[vidname]:
