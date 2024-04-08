@@ -643,5 +643,3 @@ def ig_resnext101_32x48d(pretrained=True, num_classes=1000, in_chans=3, **kwargs
     # if pretrained:
     #     load_pretrained(model, default_cfg, num_classes, in_chans)
     return model
-
-
