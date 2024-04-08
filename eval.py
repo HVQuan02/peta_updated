@@ -13,7 +13,7 @@ parser.add_argument('--model_path', type=str, default='./models_local/peta_32.pt
 parser.add_argument('--model_name', type=str, default='mtresnetaggregate')
 parser.add_argument('--num_classes', type=int, default=23)
 parser.add_argument('--dataset', default='cufed', choices=['cufed', 'pec', 'holiday'])
-parser.add_argument('--dataset_path', type=str, default='/cc') # change
+parser.add_argument('--dataset_path', type=str, default='/content/drive/MyDrive/CUFED-Event-Image/CUFED') # change
 parser.add_argument('--dataset_type', type=str, default='ML_CUFED')
 parser.add_argument('--batch_size', type=int, default=64, help='batch size')
 parser.add_argument('--transform_type', type=str, default='squish')
