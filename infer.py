@@ -109,9 +109,9 @@ def main():
     display_image(montage, tags, 'result.jpg', os.path.join(args.path_output, args.album_path).replace("./albums", ""))
 
     # Actual validation process
-    # print('loading album and doing inference...')
-    # map = validate(model, val_loader, classes_list, args.threshold)
-    # print("final validation map: {:.2f}".format(map))
+    print('loading album and doing inference...')
+    map = validate(model, val_loader, classes_list, args.threshold)
+    print("final validation map: {:.2f}".format(map))
 
     print('Done\n')
 
