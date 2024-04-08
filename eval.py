@@ -36,7 +36,8 @@ def evaluate(model, dataset, loader, scores, out_file, device):
     model.eval()
     with torch.no_grad():
         for i, batch in enumerate(loader):
-            out_data = model(batch)
+            feats = batch.to(device)
+            out_data = model(feats)
             print(out_data)
             print(out_data.shape)
             shape = out_data.shape[0]
