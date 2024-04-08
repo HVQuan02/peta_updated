@@ -96,6 +96,7 @@ def accuracy(inp, targ, axis=-1):
 
 
 def average_precision(output, target):
+    epsilon = 1e-8
     # sort examples
     indices = torch.flip(output.argsort(), [0])
     # Computes prec@i
@@ -105,9 +106,9 @@ def average_precision(output, target):
     ind = target_ == 1
     pos_count_ = np.cumsum(ind)
     total = pos_count_[-1]
-    pos_count_[np.logical_not(ind)] = 0
+    pos_count_[torch.logical_not(ind).numpy()] = 0
     pp = pos_count_ / total_count_
-    precision_at_i_ = np.sum(pp)
+    precision_at_i_ = torch.sum(pp).numpy()
     precision_at_i = precision_at_i_/(total + epsilon)
 
     return precision_at_i
