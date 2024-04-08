@@ -4,6 +4,8 @@ from itertools import chain
 from fastai.torch_core import to_detach, flatten_check, store_attr
 from fastai.metrics import Metric
 
+epsilon = 1e-8
+
 class AccumMetricG(Metric):
     "Stores predictions and targets on CPU in accumulate to perform final calculations with `func`."
 
@@ -96,7 +98,6 @@ def accuracy(inp, targ, axis=-1):
 
 
 def average_precision(output, target):
-    epsilon = 1e-8
     # sort examples
     indices = torch.flip(output.argsort(), [0])
     # Computes prec@i
