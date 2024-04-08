@@ -1,7 +1,7 @@
 import os
 from torch import nn
 import torch
-# from fastai2.layers import trunc_normal_
+# from fastai.layers import trunc_normal_
 from src.utils.utils import trunc_normal_
 import pickle
 
