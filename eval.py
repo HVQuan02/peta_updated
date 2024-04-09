@@ -11,7 +11,7 @@ parser = argparse.ArgumentParser(description='PETA: Photo Album Event Recognitio
 parser.add_argument('--model_path', type=str, default='./models_local/peta_32.pth')
 parser.add_argument('--model_name', type=str, default='mtresnetaggregate')
 parser.add_argument('--num_classes', type=int, default=23)
-parser.add_argument('--dataset', default='cufed', choices=['cufed', 'pec', 'holiday'])
+parser.add_argument('--dataset', default='cufed', choices=['cufed', 'pec', 'holidays'])
 parser.add_argument('--dataset_path', type=str, default='/content/drive/MyDrive/CUFED-Event-Image/CUFED')
 parser.add_argument('--dataset_type', type=str, default='ML_CUFED')
 parser.add_argument('--batch_size', type=int, default=32, help='batch size') # change

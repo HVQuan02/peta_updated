@@ -13,7 +13,7 @@ parser = argparse.ArgumentParser(description='PETA: Photo Album Event Recognitio
 parser.add_argument('--resume', default=None, help='checkpoint to resume training')
 parser.add_argument('--model_name', type=str, default='mtresnetaggregate')
 parser.add_argument('--num_classes', type=int, default=23)
-parser.add_argument('--dataset', default='cufed', choices=['cufed', 'pec', 'holiday']) # change
+parser.add_argument('--dataset', default='cufed', choices=['cufed', 'pec', 'holidays'])
 parser.add_argument('--dataset_path', type=str, default='/content/drive/MyDrive/CUFED-Event-Image/CUFED')
 parser.add_argument('--dataset_type', type=str, default='ML_CUFED')
 parser.add_argument('--batch_size', type=int, default=32, help='batch size') # change
@@ -81,7 +81,7 @@ def main():
     t1 = time.perf_counter()
 
     epoch_cnt = epoch + 1
-    if epoch_cnt >= 100 and (epoch_cnt >= 190 or epoch_cnt % args.save_interval == 0): # change
+    if epoch_cnt >= 110 and (epoch_cnt >= 190 or epoch_cnt % args.save_interval == 0): # change
       sfnametmpl = 'model-cufed-{:03d}.pt' # change
       sfname = sfnametmpl.format(epoch_cnt)
       spth = os.path.join(args.save_folder, sfname)
