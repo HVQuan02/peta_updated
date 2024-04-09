@@ -16,9 +16,7 @@ def get_album(album_path, album_clip_length, img_size):
         np_img = np.array(im_resize, dtype=np.uint8)
         tensor_batch[i] = torch.from_numpy(np_img).float() / 255.0
     tensor_batch = tensor_batch.permute(0, 3, 1, 2)   # HWC to CHW
-    # tensor_images = torch.unsqueeze(tensor_images, 0).cuda()
-    # montage = torchvision.utils.make_grid(tensor_batch).permute(1, 2, 0).cpu()
-    return tensor_batch#, montage
+    return tensor_batch
 
 class CUFED(Dataset):
     event_labels = ['Architecture', 'BeachTrip', 'Birthday', 'BusinessActivity',
@@ -38,7 +36,7 @@ class CUFED(Dataset):
         else:
             split_path = os.path.join(root_dir, 'val_split.txt')
 
-        label_path = os.path.join(root_dir, "event_type.json") # change path
+        label_path = os.path.join(root_dir, "event_type.json")
         with open(label_path, 'r') as f:
             album_data = json.load(f)
 
@@ -60,7 +58,7 @@ class CUFED(Dataset):
         return len(self.videos)
     
     def __getitem__(self, idx):
-        dataset_path = os.path.join(self.root_dir, 'dataset') # change path
+        dataset_path = os.path.join(self.root_dir, 'dataset')
         album_path = os.path.join(dataset_path, self.videos[idx])
         album_tensor = get_album(album_path, self.album_clip_length, self.img_size)
         if self.phase == 'train':

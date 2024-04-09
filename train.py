@@ -36,7 +36,9 @@ args = parser.parse_args()
 def train(model, train_loader, crit, opt, sched, device):
   epoch_loss = 0
   for batch in train_loader:
-    feats, label = batch.to(device)
+    feats, label = batch
+    feats = feats.to(device)
+    label = label.to(device)
     opt.zero_grad()
     out_data = model(feats)
     loss = crit(out_data, label)
