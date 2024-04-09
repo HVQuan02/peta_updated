@@ -67,7 +67,7 @@ def main():
   # Setup model
   print('creating and loading the model...')
   state = torch.load(args.model_path, map_location='cpu')
-  model = create_model(args).cuda()
+  model = create_model(args).to(device)
   model.load_state_dict(state['model'], strict=True)
 
   num_test = len(dataset)

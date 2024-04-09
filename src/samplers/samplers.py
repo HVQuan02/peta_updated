@@ -19,18 +19,24 @@ class ValOrderedSampler(Sampler):
     """
 
     def __init__(self, dataset, args, num_replicas=None, rank=None):
-        if num_replicas is None:
-            if not dist.is_available() or not (dist.is_initialized()):
-                # raise RuntimeError("Requires distributed package to be available")
-                num_replicas = 1
-            else:
-                num_replicas = dist.get_world_size()
-        if rank is None:
-            if not dist.is_available() or not (dist.is_initialized()):
-                # raise RuntimeError("Requires distributed package to be available")
-                rank = 0
-            else:
-                rank = dist.get_rank()
+        # if num_replicas is None:
+        #     if not dist.is_available() or not (dist.is_initialized()):
+        #         # raise RuntimeError("Requires distributed package to be available")
+        #         num_replicas = 1
+        #     else:
+        #         num_replicas = dist.get_world_size()
+        # if rank is None:
+        #     if not dist.is_available() or not (dist.is_initialized()):
+        #         # raise RuntimeError("Requires distributed package to be available")
+        #         rank = 0
+        #     else:
+        #         rank = dist.get_rank()
+        if dist.is_available() and dist.is_initialized():
+            num_replicas = dist.get_world_size()
+            rank = dist.get_rank()
+        else:
+            num_replicas = 1
+            rank = 0
         self.dataset = dataset
         self.num_replicas = num_replicas
         self.rank = rank

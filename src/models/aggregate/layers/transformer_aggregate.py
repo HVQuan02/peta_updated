@@ -11,7 +11,7 @@ class TransformerEncoderLayerWithWeight(nn.TransformerEncoderLayer):
 
   def forward(self, src, src_mask=None, src_key_padding_mask=None):
     src2, attn_weight = self.self_attn(src, src, src, attn_mask=src_mask,
-                                       key_padding_mask=src_key_padding_mask)
+                                       key_padding_mask=src_key_padding_mask, batch_first=True)
     src = src + self.dropout1(src2)
     src = self.norm1(src)
     src2 = self.linear2(self.dropout(self.activation(self.linear1(src))))
