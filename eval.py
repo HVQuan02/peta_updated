@@ -7,7 +7,7 @@ from sklearn.metrics import average_precision_score, accuracy_score
 
 from datasets import CUFED
 
-parser = argparse.ArgumentParser(description='Photo Album Event Recognition')
+parser = argparse.ArgumentParser(description='PETA: Photo Album Event Recognition')
 parser.add_argument('--model_path', type=str, default='./models_local/peta_32.pth')
 parser.add_argument('--model_name', type=str, default='mtresnetaggregate')
 parser.add_argument('--num_classes', type=int, default=23)
@@ -51,8 +51,10 @@ def evaluate(model, dataset, loader, scores, out_file, device):
 def main():
   if args.dataset == 'cufed':
     dataset = CUFED(root_dir=args.dataset_path, is_train=False, img_size=args.img_size, album_clip_length=args.album_clip_length)
+  else:
+    exit("Unknown dataset!")
   device = torch.device('cuda:0')
-  val_loader = DataLoader(dataset, batch_size=args.batch_size, num_workers=args.num_workers)
+  val_loader = DataLoader(dataset, batch_size=args.batch_size, num_workers=args.num_workers, shuffle=False)
 
   if args.verbose:
     print("running on {}".format(device))

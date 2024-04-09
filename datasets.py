@@ -63,4 +63,6 @@ class CUFED(Dataset):
         dataset_path = os.path.join(self.root_dir, 'dataset') # change path
         album_path = os.path.join(dataset_path, self.videos[idx])
         album_tensor = get_album(album_path, self.album_clip_length, self.img_size)
+        if self.phase == 'train':
+            return album_tensor, self.labels[idx]
         return album_tensor
