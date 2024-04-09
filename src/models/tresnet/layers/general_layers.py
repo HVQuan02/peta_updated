@@ -69,11 +69,20 @@ class SpaceToDepthJit(object):
         # Permute dimensions for space-to-depth operation
         x = x.permute(0, 3, 5, 1, 2, 4).contiguous()
 
+        # Calculate the new channel dimension after space-to-depth transformation
+        new_C = C * (self.block_size ** 2)
+
+        # Ensure all dimensions are converted to integers before reshaping
+        N = int(N)
+        B = int(B)
+        new_C = int(new_C)
+        new_H = int(new_H)
+        new_W = int(new_W)
+
         # Reshape back to the original batched format after space-to-depth transformation
-        x = x.view(N, B, C * (self.block_size ** 2), new_H, new_W)
+        x = x.view(N*B, new_C, new_H, new_W)
 
         return x
-
 
 
 class hard_sigmoid(nn.Module):
