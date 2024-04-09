@@ -15,7 +15,7 @@ parser.add_argument('--num_classes', type=int, default=23)
 parser.add_argument('--dataset', default='cufed', choices=['cufed', 'pec', 'holiday'])
 parser.add_argument('--dataset_path', type=str, default='/content/drive/MyDrive/CUFED-Event-Image/CUFED')
 parser.add_argument('--dataset_type', type=str, default='ML_CUFED')
-parser.add_argument('--batch_size', type=int, default=1, help='batch size') # change
+parser.add_argument('--batch_size', type=int, default=64, help='batch size') # change
 parser.add_argument('--transform_type', type=str, default='squish')
 parser.add_argument('--album_sample', type=str, default='rand_permute')
 parser.add_argument('--num_workers', type=int, default=2, help='number of workers for data loader')
