@@ -34,12 +34,12 @@ def evaluate(model, dataset, loader, scores, out_file, device):
     gidx = 0
     model.eval()
     with torch.no_grad():
-        for i, batch in enumerate(loader):
-            print(batch.shape)
+        for batch in loader:
+            # print(batch.shape)
             feats = batch.to(device)
             out_data = model(feats)
-            print(out_data)
-            print(out_data.shape)
+            # print(out_data)
+            # print(out_data.shape)
             shape = out_data.shape[0]
 
             if out_file:
