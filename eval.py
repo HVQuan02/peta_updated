@@ -13,6 +13,7 @@ parser.add_argument('--model_name', type=str, default='mtresnetaggregate')
 parser.add_argument('--num_classes', type=int, default=23)
 parser.add_argument('--dataset', default='cufed', choices=['cufed', 'pec', 'holidays'])
 parser.add_argument('--dataset_path', type=str, default='/content/drive/MyDrive/CUFED-Event-Image/CUFED')
+parser.add_argument('--split_path', type=str, default='/content/drive/MyDrive/CUFED-Event-Image/CUFED')
 parser.add_argument('--dataset_type', type=str, default='ML_CUFED')
 parser.add_argument('--batch_size', type=int, default=32, help='batch size') # change
 parser.add_argument('--transform_type', type=str, default='squish')
@@ -50,7 +51,7 @@ def evaluate(model, dataset, loader, scores, out_file, device):
 
 def main():
   if args.dataset == 'cufed':
-    dataset = CUFED(root_dir=args.dataset_path, is_train=False, img_size=args.img_size, album_clip_length=args.album_clip_length)
+    dataset = CUFED(root_dir=args.dataset_path, split_dir=args.split_path, is_train=False, img_size=args.img_size, album_clip_length=args.album_clip_length)
   else:
     exit("Unknown dataset!")
   device = torch.device('cuda:0')

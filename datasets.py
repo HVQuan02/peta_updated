@@ -26,15 +26,15 @@ class CUFED(Dataset):
                     'Protest', 'ReligiousActivity', 'Show', 'Sports', 'ThemePark',
                     'UrbanTrip', 'Wedding', 'Zoo']
 
-    def __init__(self, root_dir, is_train, img_size, album_clip_length):
+    def __init__(self, root_dir, split_dir, is_train, img_size, album_clip_length):
         self.img_size = img_size
         self.album_clip_length = album_clip_length
         self.root_dir = root_dir
         self.phase = 'train' if is_train else 'test'
         if self.phase == 'train':
-            split_path = os.path.join(root_dir, 'train_split.txt')
+            split_path = os.path.join(split_dir, 'train_split.txt')
         else:
-            split_path = os.path.join(root_dir, 'val_split.txt')
+            split_path = os.path.join(split_dir, 'val_split.txt')
 
         label_path = os.path.join(root_dir, "event_type.json")
         with open(label_path, 'r') as f:
@@ -58,7 +58,7 @@ class CUFED(Dataset):
         return len(self.videos)
     
     def __getitem__(self, idx):
-        dataset_path = os.path.join(self.root_dir, 'dataset')
+        dataset_path = os.path.join(self.root_dir, 'images')
         album_path = os.path.join(dataset_path, self.videos[idx])
         album_tensor = get_album(album_path, self.album_clip_length, self.img_size)
         if self.phase == 'train':
