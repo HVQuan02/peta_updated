@@ -4,6 +4,7 @@ import torch
 from torch.utils.data import DataLoader
 from src.models import create_model
 from sklearn.metrics import average_precision_score, accuracy_score
+from torch.optim.swa_utils import AveragedModel, get_ema_multi_avg_fn
 
 from datasets import CUFED
 
@@ -12,6 +13,7 @@ parser.add_argument('--model_path', type=str, default='./models_local/peta_32.pt
 parser.add_argument('--model_name', type=str, default='mtresnetaggregate')
 parser.add_argument('--num_classes', type=int, default=23)
 parser.add_argument('--dataset', default='cufed', choices=['cufed', 'pec', 'holidays'])
+parser.add_argument('--metric', default='map', choices=['map', 'accuracy'])
 parser.add_argument('--dataset_path', type=str, default='/content/drive/MyDrive/CUFED-Event-Image/CUFED')
 parser.add_argument('--split_path', type=str, default='/content/drive/MyDrive/CUFED-Event-Image/CUFED')
 parser.add_argument('--dataset_type', type=str, default='ML_CUFED')
@@ -20,6 +22,7 @@ parser.add_argument('--transform_type', type=str, default='squish')
 parser.add_argument('--album_sample', type=str, default='rand_permute')
 parser.add_argument('--num_workers', type=int, default=2, help='number of workers for data loader')
 parser.add_argument('--save_scores', action='store_true', help='save the output scores')
+parser.add_argument('--ema', action='store_true', help='ema model or not')
 parser.add_argument('--save_path', default='scores.txt', help='output path')
 parser.add_argument('-v', '--verbose', action='store_true', help='show details')
 parser.add_argument('--img_size', type=int, default=224)
@@ -35,7 +38,8 @@ def evaluate(model, dataset, loader, scores, out_file, device):
     model.eval()
     with torch.no_grad():
         for batch in loader:
-            feats = batch.to(device)
+            feats, _ = batch
+            feats = feats.to(device)
             out_data = model(feats)
             shape = out_data.shape[0]
 
@@ -69,6 +73,8 @@ def main():
   print('creating and loading the model...')
   state = torch.load(args.model_path, map_location='cpu')
   model = create_model(args).to(device)
+  if args.ema:
+    model = AveragedModel(model, multi_avg_fn=get_ema_multi_avg_fn(0.999))
   model.load_state_dict(state['model'], strict=True)
 
   num_test = len(dataset)
@@ -85,9 +91,11 @@ def main():
     out_file.close()
 
   if args.dataset == 'cufed':
-    ap = average_precision_score(dataset.labels, scores) 
-    # ap = accuracy_score(dataset.labels, scores)
-    print('top1={:.2f}% dt={:.2f}sec'.format(100 * ap, t1 - t0))
+    if args.metric == 'map':
+      mark = average_precision_score(dataset.labels, scores) 
+    else:
+      mark = accuracy_score(dataset.labels, scores)
+    print('top1={:.2f}% dt={:.2f}sec'.format(100 * mark, t1 - t0))
 
 if __name__ == '__main__':
   main()
