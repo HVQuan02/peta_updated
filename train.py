@@ -9,7 +9,6 @@ from src.models import create_model
 from src.loss_functions.asymmetric_loss import AsymmetricLossOptimized
 from flash.core.optimizers import LinearWarmupCosineAnnealingLR
 from torch.optim.swa_utils import AveragedModel, get_ema_multi_avg_fn, update_bn
-
 from datasets import CUFED
 
 parser = argparse.ArgumentParser(description='PETA: Photo Album Event Recognition')
@@ -20,7 +19,8 @@ parser.add_argument('--dataset', default='cufed', choices=['cufed', 'pec', 'holi
 parser.add_argument('--dataset_path', type=str, default='/content/drive/MyDrive/CUFED-Event-Image/CUFED')
 parser.add_argument('--split_path', type=str, default='/content/drive/MyDrive/CUFED-Event-Image/CUFED')
 parser.add_argument('--dataset_type', type=str, default='ML_CUFED')
-parser.add_argument('--batch_size', type=int, default=32, help='batch size') # change
+parser.add_argument('--train_batch_size', type=int, default=5, help='batch size') # change
+parser.add_argument('--val_batch_size', type=int, default=32, help='batch size') # change
 parser.add_argument('--transform_type', type=str, default='squish')
 parser.add_argument('--album_sample', type=str, default='rand_permute')
 parser.add_argument('--num_workers', type=int, default=2, help='number of workers for data loader')
@@ -103,8 +103,8 @@ def main():
     exit("Unknown loss function!")
      
   device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-  train_loader = DataLoader(train_dataset, batch_size=args.batch_size, num_workers=args.num_workers, shuffle=False, pin_memory=True)
-  val_loader = DataLoader(val_dataset, batch_size=args.batch_size, num_workers=args.num_workers, shuffle=False)
+  train_loader = DataLoader(train_dataset, batch_size=args.train_batch_size, num_workers=args.num_workers, shuffle=False, pin_memory=True)
+  val_loader = DataLoader(val_dataset, batch_size=args.val_batch_size, num_workers=args.num_workers, shuffle=False)
 
   if args.verbose:
     print("running on {}".format(device))
@@ -127,48 +127,38 @@ def main():
       if args.verbose:
           print("resuming from epoch {}".format(start_epoch))
 
+  saved_epoch = 0
   for epoch in range(start_epoch, args.max_epochs):
     t0 = time.perf_counter()
     train_loss = train_one_epoch(ema_model, model, train_loader, crit, opt, sched, device)
-    val_loss = validate_one_epoch(model, val_loader, crit, device)
     t1 = time.perf_counter()
 
+    t2 = time.perf_counter()
+    val_loss = validate_one_epoch(model, val_loader, crit, device)
+    t3 = time.perf_counter()
+
     epoch_cnt = epoch + 1
-    if early_stopper.early_stop(val_loss):       
+    if early_stopper.early_stop(val_loss):
+      saved_epoch = epoch_cnt       
       print('Stop at epoch {}'.format(epoch_cnt)) 
-      sfnametmpl = 'model-cufed-{:03d}.pt'
-      sfname = sfnametmpl.format(epoch_cnt)
-      spth = os.path.join(args.save_folder, sfname) 
-      torch.save({
-          'epoch': epoch_cnt,
-          'model': model.state_dict(),
-          'loss': train_loss,
-          'opt_state_dict': opt.state_dict(),
-          'sched_state_dict': sched.state_dict()
-      }, spth)    
       break
-    
-    '''
-    if epoch_cnt % 25 == 0: # change
-      sfnametmpl = 'model-cufed-{:03d}.pt' # change
-      sfname = sfnametmpl.format(epoch_cnt)
-      spth = os.path.join(args.save_folder, sfname)
-      torch.save({
-          'epoch': epoch_cnt,
-          'model': model.state_dict(),
-          'loss': train_loss,
-          'opt_state_dict': opt.state_dict(),
-          'sched_state_dict': sched.state_dict()
-      }, spth)
-    '''
+
     if args.verbose:
-      print("[epoch {}] train_loss={} val_loss={} dt={:.2f}sec".format(epoch_cnt, train_loss, val_loss, t1 - t0))
+      print("[epoch {}] train_loss={} val_loss={} dt_train={:.2f}sec dt_val={:.2f}sec".format(epoch_cnt, train_loss, val_loss, t1 - t0, t3 - t2))
   
+  torch.save({
+      'epoch': saved_epoch,
+      'model': model.state_dict(),
+      'loss': train_loss,
+      'opt_state_dict': opt.state_dict(),
+      'sched_state_dict': sched.state_dict()
+  }, os.path.join(args.save_folder, 'model-cufed-{:03d}.pt'.format(saved_epoch)) )    
+
   # Update bn statistics for the ema_model at the end
   update_bn(train_loader, ema_model)
   torch.save({
     'model': ema_model.state_dict()
-  }, os.path.join(args.save_folder, 'EMA-model-cufed.pt'))
+  }, os.path.join(args.save_folder, 'EMA-model-cufed-{:03d}.pt'.format(saved_epoch)))
 
 if __name__ == '__main__':
   main()
