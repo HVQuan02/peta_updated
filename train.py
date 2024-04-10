@@ -37,8 +37,9 @@ parser.add_argument('--warmup_epochs', type=int, default=10, help='number of war
 parser.add_argument('--max_epochs', type=int, default=150, help='number of epochs to train')
 parser.add_argument('--save_folder', default='weights', help='directory to save checkpoints')
 parser.add_argument('--loss', type=str, default='asymmetric', help='loss function')
-parser.add_argument('--patience', type=int, default=30, help='patience of early stopping')
-parser.add_argument('--min_delta', type=float, default=1e-3, help='min delta of early stopping')
+parser.add_argument('--patience', type=int, default=20, help='patience of early stopping')
+parser.add_argument('--min_delta', type=float, default=1e-2, help='min delta of early stopping')
+parser.add_argument('--threshold', type=float, default=0.1, help='loss threshold of early stopping')
 args = parser.parse_args()
 
 def validate_one_epoch(model, val_loader, crit, device):
@@ -72,13 +73,16 @@ def train_one_epoch(ema_model, model, train_loader, crit, opt, sched, device):
   return epoch_loss / len(train_loader)
 
 class EarlyStopper:
-    def __init__(self, patience=20, min_delta=0):
+    def __init__(self, patience, min_delta, threshold):
         self.patience = patience
         self.min_delta = min_delta
         self.counter = 0
         self.min_validation_loss = float('inf')
+        self.threshold = threshold
 
     def early_stop(self, validation_loss):
+        if validation_loss <= self.threshold:
+            return True
         if validation_loss < self.min_validation_loss:
             self.min_validation_loss = validation_loss
             self.counter = 0
@@ -117,7 +121,7 @@ def main():
   opt = optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
   # sched = optim.lr_scheduler.MultiStepLR(opt, milestones=args.milestones)
   sched = LinearWarmupCosineAnnealingLR(opt, args.warmup_epochs, args.max_epochs)
-  early_stopper = EarlyStopper(patience=args.patience, min_delta=args.min_delta)
+  early_stopper = EarlyStopper(patience=args.patience, min_delta=args.min_delta, threshold=args.threshold)
   if args.resume:
       data = torch.load(args.resume)
       start_epoch = data['epoch']
@@ -138,7 +142,7 @@ def main():
     t3 = time.perf_counter()
 
     epoch_cnt = epoch + 1
-    if early_stopper.early_stop(val_loss):
+    if early_stopper.early_stop(val_loss) or saved_epoch == args.max_epochs:
       saved_epoch = epoch_cnt       
       print('Stop at epoch {}'.format(epoch_cnt)) 
       break
@@ -157,6 +161,7 @@ def main():
   # Update bn statistics for the ema_model at the end
   update_bn(train_loader, ema_model)
   torch.save({
+    'epoch': saved_epoch,
     'model': ema_model.state_dict()
   }, os.path.join(args.save_folder, 'EMA-model-cufed-{:03d}.pt'.format(saved_epoch)))
 
