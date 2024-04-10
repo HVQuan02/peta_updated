@@ -6,7 +6,7 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
 from src.models import create_model
-from src.loss_functions.asymmetric_loss import AsymmetricLoss
+from src.loss_functions.asymmetric_loss import AsymmetricLossOptimized
 from flash.core.optimizers import LinearWarmupCosineAnnealingLR
 from torch.optim.swa_utils import AveragedModel, get_ema_multi_avg_fn, update_bn
 
@@ -32,15 +32,13 @@ parser.add_argument('--use_transformer', type=int, default=1)
 parser.add_argument('--transformers_pos', type=int, default=1)
 parser.add_argument('--lr', type=float, default=1e-5, help='base learning rate')
 parser.add_argument('--weight_decay', type=float, default=1e-3, help='weight decay rate')
-parser.add_argument('--milestones', nargs="+", type=int, default=[110, 160], help='milestones of learning decay')
+parser.add_argument('--milestones', nargs="+", type=int, default=[30, 60, 90, 120], help='milestones of learning decay')
 parser.add_argument('--warmup_epochs', type=int, default=10, help='number of warmup epochs')
-parser.add_argument('--max_epochs', type=int, default=200, help='number of epochs to train')
-parser.add_argument('--save_interval', type=int, default=10, help='interval for saving models (epochs)')
+parser.add_argument('--max_epochs', type=int, default=150, help='number of epochs to train')
 parser.add_argument('--save_folder', default='weights', help='directory to save checkpoints')
-parser.add_argument('--gamma_neg', type=float, default=0)
-parser.add_argument('--gamma_pos', type=float, default=0)
-parser.add_argument('--clip', type=float, default=0)
 parser.add_argument('--loss', type=str, default='asymmetric', help='loss function')
+parser.add_argument('--patience', type=int, default=30, help='patience of early stopping')
+parser.add_argument('--min_delta', type=float, default=1e-3, help='min delta of early stopping')
 args = parser.parse_args()
 
 def validate_one_epoch(model, val_loader, crit, device):
@@ -74,7 +72,7 @@ def train_one_epoch(ema_model, model, train_loader, crit, opt, sched, device):
   return epoch_loss / len(train_loader)
 
 class EarlyStopper:
-    def __init__(self, patience=1, min_delta=0):
+    def __init__(self, patience=20, min_delta=0):
         self.patience = patience
         self.min_delta = min_delta
         self.counter = 0
@@ -98,13 +96,13 @@ def main():
     exit("Unknown dataset!")
 
   if args.loss == 'asymmetric':
-    crit = AsymmetricLoss(args)
+    crit = AsymmetricLossOptimized()
   elif args.loss == 'bce':
     crit = nn.BCEWithLogitsLoss()
   else:
     exit("Unknown loss function!")
      
-  device = torch.device('cuda:0')
+  device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
   train_loader = DataLoader(train_dataset, batch_size=args.batch_size, num_workers=args.num_workers, shuffle=False, pin_memory=True)
   val_loader = DataLoader(val_dataset, batch_size=args.batch_size, num_workers=args.num_workers, shuffle=False)
 
@@ -119,6 +117,7 @@ def main():
   opt = optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
   # sched = optim.lr_scheduler.MultiStepLR(opt, milestones=args.milestones)
   sched = LinearWarmupCosineAnnealingLR(opt, args.warmup_epochs, args.max_epochs)
+  early_stopper = EarlyStopper(patience=args.patience, min_delta=args.min_delta)
   if args.resume:
       data = torch.load(args.resume)
       start_epoch = data['epoch']
@@ -135,6 +134,20 @@ def main():
     t1 = time.perf_counter()
 
     epoch_cnt = epoch + 1
+    if early_stopper.early_stop(val_loss):       
+      print('Stop at epoch {}'.format(epoch_cnt)) 
+      sfnametmpl = 'model-cufed-{:03d}.pt'
+      sfname = sfnametmpl.format(epoch_cnt)
+      spth = os.path.join(args.save_folder, sfname) 
+      torch.save({
+          'epoch': epoch_cnt,
+          'model': model.state_dict(),
+          'loss': train_loss,
+          'opt_state_dict': opt.state_dict(),
+          'sched_state_dict': sched.state_dict()
+      }, spth)    
+      break
+    
     '''
     if epoch_cnt % 25 == 0: # change
       sfnametmpl = 'model-cufed-{:03d}.pt' # change
@@ -155,7 +168,7 @@ def main():
   update_bn(train_loader, ema_model)
   torch.save({
     'model': ema_model.state_dict()
-  }, os.path.join(args.save_folder, 'EMAmodel-cufed.pt'))
+  }, os.path.join(args.save_folder, 'EMA-model-cufed.pt'))
 
 if __name__ == '__main__':
   main()

@@ -5,7 +5,6 @@ from torch.utils.data import DataLoader
 from src.models import create_model
 from sklearn.metrics import average_precision_score, accuracy_score
 from torch.optim.swa_utils import AveragedModel, get_ema_multi_avg_fn
-
 from datasets import CUFED
 
 parser = argparse.ArgumentParser(description='PETA: Photo Album Event Recognition')
@@ -58,7 +57,7 @@ def main():
     dataset = CUFED(root_dir=args.dataset_path, split_dir=args.split_path, is_train=False, img_size=args.img_size, album_clip_length=args.album_clip_length)
   else:
     exit("Unknown dataset!")
-  device = torch.device('cuda:0')
+  device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
   val_loader = DataLoader(dataset, batch_size=args.batch_size, num_workers=args.num_workers, shuffle=False)
 
   if args.verbose:
