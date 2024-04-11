@@ -8,21 +8,21 @@ from torch.optim.swa_utils import AveragedModel, get_ema_multi_avg_fn
 from datasets import CUFED
 
 parser = argparse.ArgumentParser(description='PETA: Photo Album Event Recognition')
-parser.add_argument('--model_path', type=str, default='./models_local/peta_32.pth')
+parser.add_argument('--model_path', type=str, default='./weights/PETA-cufed.pth')
 parser.add_argument('--model_name', type=str, default='mtresnetaggregate')
 parser.add_argument('--num_classes', type=int, default=23)
 parser.add_argument('--dataset', default='cufed', choices=['cufed', 'pec', 'holidays'])
 parser.add_argument('--metric', default='map', choices=['map', 'accuracy'])
-parser.add_argument('--dataset_path', type=str, default='/content/drive/MyDrive/CUFED-Event-Image/CUFED')
-parser.add_argument('--split_path', type=str, default='/content/drive/MyDrive/CUFED-Event-Image/CUFED')
+parser.add_argument('--dataset_path', type=str, default='/kaggle/input/thesis-cufed/CUFED')
+parser.add_argument('--split_path', type=str, default='/kaggle/working/split_dir')
 parser.add_argument('--dataset_type', type=str, default='ML_CUFED')
-parser.add_argument('--batch_size', type=int, default=32, help='batch size') # change
-parser.add_argument('--transform_type', type=str, default='squish')
-parser.add_argument('--album_sample', type=str, default='rand_permute')
+parser.add_argument('--batch_size', type=int, default=32, help='batch size')
+# parser.add_argument('--transform_type', type=str, default='squish')
+# parser.add_argument('--album_sample', type=str, default='rand_permute')
 parser.add_argument('--num_workers', type=int, default=2, help='number of workers for data loader')
 parser.add_argument('--save_scores', action='store_true', help='save the output scores')
-parser.add_argument('--ema', action='store_true', help='ema model or not')
-parser.add_argument('--save_path', default='scores.txt', help='output path')
+parser.add_argument('--ema', action='store_true', help='use ema model or not')
+parser.add_argument('--save_path', default='scores.txt', help='output path of predicted scores')
 parser.add_argument('-v', '--verbose', action='store_true', help='show details')
 parser.add_argument('--img_size', type=int, default=224)
 parser.add_argument('--album_clip_length', type=int, default=32)
@@ -58,7 +58,7 @@ def main():
   else:
     exit("Unknown dataset!")
   device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-  val_loader = DataLoader(dataset, batch_size=args.batch_size, num_workers=args.num_workers, shuffle=False)
+  eval_loader = DataLoader(dataset, batch_size=args.batch_size, num_workers=args.num_workers, shuffle=False)
 
   if args.verbose:
     print("running on {}".format(device))
@@ -80,7 +80,7 @@ def main():
   scores = torch.zeros((num_test, len(dataset.event_labels)), dtype=torch.float32)
 
   t0 = time.perf_counter()
-  evaluate(model, dataset, val_loader, scores, out_file, device)
+  evaluate(model, dataset, eval_loader, scores, out_file, device)
   t1 = time.perf_counter()
   
   # # Change tensors to 1d-arrays
@@ -89,12 +89,11 @@ def main():
   if args.save_scores:
     out_file.close()
 
-  if args.dataset == 'cufed':
-    if args.metric == 'map':
-      mark = average_precision_score(dataset.labels, scores) 
-    else:
-      mark = accuracy_score(dataset.labels, scores)
-    print('top1={:.2f}% dt={:.2f}sec'.format(100 * mark, t1 - t0))
+  if args.metric == 'map':
+    mark = average_precision_score(dataset.labels, scores) 
+  else:
+    mark = accuracy_score(dataset.labels, scores)
+  print('top1={:.2f}% dt={:.2f}sec'.format(100 * mark, t1 - t0))
 
 if __name__ == '__main__':
   main()

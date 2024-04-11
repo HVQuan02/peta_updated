@@ -149,7 +149,7 @@ def main():
         'loss': train_loss,
         'opt_state_dict': opt.state_dict(),
         'sched_state_dict': sched.state_dict()
-      }, os.path.join(args.save_folder, 'model-cufed.pt')) 
+      }, os.path.join(args.save_folder, 'PETA-cufed.pt')) 
          
     if is_early_stopping:
       # Update bn statistics for the ema_model at the end
@@ -157,7 +157,7 @@ def main():
       torch.save({
         'epoch': epoch_cnt,
         'model': ema_model.state_dict()
-      }, os.path.join(args.save_folder, 'EMA-model-cufed.pt'))
+      }, os.path.join(args.save_folder, 'EMA-PETA-cufed.pt'))
       print('Stop at epoch {}'.format(epoch_cnt)) 
       break
 
