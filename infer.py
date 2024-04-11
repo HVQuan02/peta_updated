@@ -12,7 +12,7 @@ from torch.optim.swa_utils import AveragedModel, get_ema_multi_avg_fn
 # ----------------------------------------------------------------------
 # Parameters
 parser = argparse.ArgumentParser(description='PETA: Photo album Event recognition using Transformers Attention.')
-parser.add_argument('--model_path', type=str, default='./weights/PETA-cufed.pth')
+parser.add_argument('--model_path', type=str, default='./weights/PETA-cufed.pt')
 parser.add_argument('--album_path', type=str, default='./albums/Graduation/0_92024390@N00')
 parser.add_argument('--val_dir', type=str, default='./albums')
 parser.add_argument('--num_classes', type=int, default=23)
@@ -45,6 +45,7 @@ def get_album(args, device):
     tensor_batch = tensor_batch.permute(0, 3, 1, 2)   # HWC to CHW
     montage = torchvision.utils.make_grid(tensor_batch).permute(1, 2, 0).cpu()
     tensor_batch = torch.unsqueeze(tensor_batch, 0)
+    print(tensor_batch.shape)
     tensor_batch = tensor_batch.to(device)
     return tensor_batch, montage
 

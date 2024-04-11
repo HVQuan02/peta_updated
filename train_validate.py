@@ -34,10 +34,23 @@ parser.add_argument('--warmup_epochs', type=int, default=10, help='number of war
 parser.add_argument('--max_epochs', type=int, default=100, help='max number of epochs to train')
 parser.add_argument('--save_folder', default='weights', help='directory to save checkpoints')
 parser.add_argument('--loss', type=str, default='asymmetric', help='loss function')
-parser.add_argument('--patience', type=int, default=10, help='patience of early stopping')
+parser.add_argument('--patience', type=int, default=20, help='patience of early stopping')
 parser.add_argument('--min_delta', type=float, default=1e-3, help='min delta of early stopping') # change
-parser.add_argument('--threshold', type=float, default=5e-3, help='val loss threshold of early stopping') # change
+parser.add_argument('--threshold', type=float, default=0.1, help='val loss threshold of early stopping') # change
 args = parser.parse_args()
+
+def validate_one_epoch(model, val_loader, crit, device):
+  model.eval()
+  epoch_loss = 0
+  with torch.no_grad():
+    for batch in val_loader:
+      feats, label = batch
+      feats = feats.to(device)
+      label = label.to(device)
+      out_data = model(feats)
+      loss = crit(out_data, label)
+      epoch_loss += loss.item()
+  return epoch_loss / len(val_loader)
 
 def train_one_epoch(ema_model, model, train_loader, crit, opt, sched, device):
   model.train()
@@ -61,17 +74,17 @@ class EarlyStopper:
         self.patience = patience
         self.min_delta = min_delta
         self.counter = 0
-        self.min_train_loss = float('inf')
+        self.min_validation_loss = float('inf')
         self.threshold = threshold
 
-    def early_stop(self, train_loss):
-        if train_loss <= self.threshold:
+    def early_stop(self, validation_loss):
+        if validation_loss <= self.threshold:
             return True, True
-        if train_loss < self.min_train_loss:
-            self.min_train_loss = train_loss
+        if validation_loss < self.min_validation_loss:
+            self.min_validation_loss = validation_loss
             self.counter = 0
             return False, True
-        elif train_loss > (self.min_train_loss + self.min_delta):
+        elif validation_loss > (self.min_validation_loss + self.min_delta):
             self.counter += 1
             if self.counter >= self.patience:
                 return True, False
@@ -81,6 +94,7 @@ class EarlyStopper:
 def main():
   if args.dataset == 'cufed':
     train_dataset = CUFED(root_dir=args.dataset_path, split_dir=args.split_path, is_train=True, img_size=args.img_size, album_clip_length=args.album_clip_length)
+    val_dataset = CUFED(root_dir=args.dataset_path, split_dir=args.split_path, is_train=False, is_val=True, img_size=args.img_size, album_clip_length=args.album_clip_length)
   else:
     exit("Unknown dataset!")
 
@@ -93,10 +107,12 @@ def main():
      
   device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
   train_loader = DataLoader(train_dataset, batch_size=args.train_batch_size, num_workers=args.num_workers, shuffle=False, pin_memory=True)
+  val_loader = DataLoader(val_dataset, batch_size=args.val_batch_size, num_workers=args.num_workers, shuffle=False)
 
   if args.verbose:
     print("running on {}".format(device))
     print("num samples of train = {}".format(len(train_dataset)))
+    print("num samples of val = {}".format(len(val_dataset)))
 
   start_epoch = 0
   model = create_model(args).to(device)
@@ -104,7 +120,6 @@ def main():
   opt = optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
   sched = LinearWarmupCosineAnnealingLR(opt, args.warmup_epochs, args.max_epochs)
   early_stopper = EarlyStopper(patience=args.patience, min_delta=args.min_delta, threshold=args.threshold)
-  
   if args.resume:
       data = torch.load(args.resume)
       start_epoch = data['epoch']
@@ -119,9 +134,12 @@ def main():
     train_loss = train_one_epoch(ema_model, model, train_loader, crit, opt, sched, device)
     t1 = time.perf_counter()
 
-    epoch_cnt = epoch + 1
-    is_early_stopping, is_save_ckpt = early_stopper.early_stop(train_loss)
+    t2 = time.perf_counter()
+    val_loss = validate_one_epoch(model, val_loader, crit, device)
+    t3 = time.perf_counter()
 
+    epoch_cnt = epoch + 1
+    is_early_stopping, is_save_ckpt = early_stopper.early_stop(val_loss)
     if is_save_ckpt:
       torch.save({
         'epoch': epoch_cnt,
@@ -142,7 +160,7 @@ def main():
       break
 
     if args.verbose:
-      print("[epoch {}] train_loss={} dt_train={:.2f}sec".format(epoch_cnt, train_loss, t1 - t0))  
+      print("[epoch {}] train_loss={} val_loss={} dt_train={:.2f}sec dt_val={:.2f}sec dt={:.2f}sec".format(epoch_cnt, train_loss, val_loss, t1 - t0, t3 - t2, t1 - t0 + t3 - t2))  
 
 
 if __name__ == '__main__':
