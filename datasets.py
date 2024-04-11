@@ -26,27 +26,40 @@ class CUFED(Dataset):
                     'Protest', 'ReligiousActivity', 'Show', 'Sports', 'ThemePark',
                     'UrbanTrip', 'Wedding', 'Zoo']
 
-    def __init__(self, root_dir, split_dir, is_train, is_val=False, img_size=224, album_clip_length=32):
+    def __init__(self, root_dir, split_dir, is_train, train_with_val = True, is_val=False, img_size=224, album_clip_length=32):
         self.img_size = img_size
         self.album_clip_length = album_clip_length
         self.root_dir = root_dir
         self.phase = 'train' if is_train else 'test'
+
+        train_split_path = os.path.join(split_dir, 'train_split.txt')
+        val_split_path = os.path.join(split_dir, 'val_split.txt')
+        test_split_path = os.path.join(split_dir, 'test_split.txt')
+
         if self.phase == 'train':
-            split_path = os.path.join(split_dir, 'train_split.txt')
+            split_path = train_split_path
         elif is_val:
-            split_path = os.path.join(split_dir, 'val_split.txt')
+            split_path = val_split_path
         else:
-            split_path = os.path.join(split_dir, 'test_split.txt')
+            split_path = test_split_path
 
         label_path = os.path.join(root_dir, "event_type.json")
         with open(label_path, 'r') as f:
             album_data = json.load(f)
 
-        with open(split_path, 'r') as f:
-            album_names = f.readlines()
-        vidname_list = [name.strip() for name in album_names]
+        vidname_list = []
+        if train_with_val:
+            with open(split_path, 'r') as f:
+                album_names = f.readlines()
+            vidname_list = [name.strip() for name in album_names]
+        else:
+            filepaths = [train_split_path, val_split_path]
+            for filepath in filepaths:
+                with open(filepath, 'r') as file:
+                    vidname_list.extend(file.read().splitlines())
+
         if self.phase == 'train':
-            vidname_list.remove('33_65073328@N00') # weird album
+            vidname_list.remove('33_65073328@N00') # remove weird album
 
         labels_np = np.zeros((len(vidname_list), len(self.event_labels)), dtype=np.float32)
 

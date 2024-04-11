@@ -20,7 +20,6 @@ parser.add_argument('--dataset_path', type=str, default='/kaggle/input/thesis-cu
 parser.add_argument('--split_path', type=str, default='/kaggle/working/split_dir')
 parser.add_argument('--dataset_type', type=str, default='ML_CUFED')
 parser.add_argument('--train_batch_size', type=int, default=4, help='train batch size') # change
-parser.add_argument('--val_batch_size', type=int, default=16, help='validate batch size') # change
 parser.add_argument('--num_workers', type=int, default=2, help='number of workers for data loader')
 parser.add_argument('-v', '--verbose', action='store_true', help='show details')
 parser.add_argument('--img_size', type=int, default=224)
@@ -80,7 +79,7 @@ class EarlyStopper:
 
 def main():
   if args.dataset == 'cufed':
-    train_dataset = CUFED(root_dir=args.dataset_path, split_dir=args.split_path, is_train=True, img_size=args.img_size, album_clip_length=args.album_clip_length)
+    train_dataset = CUFED(root_dir=args.dataset_path, split_dir=args.split_path, is_train=True, train_with_val=False, img_size=args.img_size, album_clip_length=args.album_clip_length) # combine train and val
   else:
     exit("Unknown dataset!")
 
@@ -104,7 +103,7 @@ def main():
   opt = optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
   sched = LinearWarmupCosineAnnealingLR(opt, args.warmup_epochs, args.max_epochs)
   early_stopper = EarlyStopper(patience=args.patience, min_delta=args.min_delta, threshold=args.threshold)
-  
+
   if args.resume:
       data = torch.load(args.resume)
       start_epoch = data['epoch']
