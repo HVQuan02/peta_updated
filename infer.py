@@ -6,7 +6,6 @@ import torchvision.utils
 from PIL import Image
 import numpy as np
 from src.models import create_model
-from src.utils.utils import create_dataloader
 from torch.optim.swa_utils import AveragedModel, get_ema_multi_avg_fn
 
 
@@ -20,8 +19,8 @@ parser.add_argument('--num_classes', type=int, default=23)
 parser.add_argument('--model_name', type=str, default='mtresnetaggregate')
 parser.add_argument('--transformers_pos', type=int, default=1)
 parser.add_argument('--input_size', type=int, default=224)
-parser.add_argument('--transform_type', type=str, default='squish')
-parser.add_argument('--album_sample', type=str, default='rand_permute')
+# parser.add_argument('--transform_type', type=str, default='squish')
+# parser.add_argument('--album_sample', type=str, default='rand_permute')
 parser.add_argument('--dataset_path', type=str, default='./data/ML_CUFED')
 parser.add_argument('--dataset_type', type=str, default='ML_CUFED')
 parser.add_argument('--path_output', type=str, default='./outputs')
@@ -97,11 +96,6 @@ def main():
         'Halloween', 'Museum', 'NatureTrip', 'PersonalArtActivity',
         'PersonalMusicActivity', 'PersonalSports', 'Protest', 'ReligiousActivity',
         'Show', 'Sports', 'ThemePark', 'UrbanTrip', 'Wedding', 'Zoo'])
-
-    # Setup data loader
-    print('creating data loader...')
-    val_loader = create_dataloader(args)
-    print('done\n')
 
     # Get album
     tensor_batch, montage = get_album(args)
