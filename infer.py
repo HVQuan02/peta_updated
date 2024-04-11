@@ -6,15 +6,16 @@ import torchvision.utils
 from PIL import Image
 import numpy as np
 from src.models import create_model
-from src.utils.utils import create_dataloader, validate
+from src.utils.utils import create_dataloader
+from torch.optim.swa_utils import AveragedModel, get_ema_multi_avg_fn
 
 
 # ----------------------------------------------------------------------
 # Parameters
 parser = argparse.ArgumentParser(description='PETA: Photo album Event recognition using Transformers Attention.')
-parser.add_argument('--model_path', type=str, default='./models_local/peta_32.pth')
+parser.add_argument('--model_path', type=str, default='./weights/PETA-cufed.pth')
 parser.add_argument('--album_path', type=str, default='./albums/Graduation/0_92024390@N00')
-parser.add_argument('--val_dir', type=str, default='./albums') #  /Graduation') # /0_92024390@N00')
+parser.add_argument('--val_dir', type=str, default='./albums')
 parser.add_argument('--num_classes', type=int, default=23)
 parser.add_argument('--model_name', type=str, default='mtresnetaggregate')
 parser.add_argument('--transformers_pos', type=int, default=1)
@@ -31,6 +32,7 @@ parser.add_argument('--num_workers', type=int, default=0)
 parser.add_argument('--top_k', type=int, default=3)
 parser.add_argument('--threshold', type=float, default=0.85)
 parser.add_argument('--remove_model_jit', type=int, default=None)
+parser.add_argument('--ema', action='store_true', help='use ema model or not')
 
 
 def get_album(args):
@@ -50,7 +52,6 @@ def get_album(args):
 
 
 def inference(tensor_batch, model, classes_list, args):
-
     output = torch.squeeze(torch.sigmoid(model(tensor_batch)))
     np_output = output.cpu().detach().numpy()
     idx_sort = np.argsort(-np_output)
@@ -63,7 +64,6 @@ def inference(tensor_batch, model, classes_list, args):
 
 
 def display_image(im, tags, filename, path_dest):
-
     if not os.path.exists(path_dest):
         os.makedirs(path_dest)
 
@@ -82,16 +82,21 @@ def main():
     # ----------------------------------------------------------------------
     # Preliminaries
     args = parser.parse_args()
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
     # Setup model
     print('creating and loading the model...')
     state = torch.load(args.model_path, map_location='cpu')
-    # args.num_classes = state['num_classes']
-    model = create_model(args).cuda()
+    model = create_model(args).to(device)
+    if args.ema:
+        model = AveragedModel(model, multi_avg_fn=get_ema_multi_avg_fn(0.999))
     model.load_state_dict(state['model'], strict=True)
     model.eval()
-    classes_list = np.array(list(state['idx_to_class'].values()))
-    print('Class list:', classes_list)
+    classes_list = np.array(['Architecture', 'BeachTrip', 'Birthday', 'BusinessActivity',
+        'CasualFamilyGather', 'Christmas', 'Cruise', 'Graduation', 'GroupActivity',
+        'Halloween', 'Museum', 'NatureTrip', 'PersonalArtActivity',
+        'PersonalMusicActivity', 'PersonalSports', 'Protest', 'ReligiousActivity',
+        'Show', 'Sports', 'ThemePark', 'UrbanTrip', 'Wedding', 'Zoo'])
 
     # Setup data loader
     print('creating data loader...')
@@ -106,11 +111,6 @@ def main():
 
     # Visualization
     display_image(montage, tags, 'result.jpg', os.path.join(args.path_output, args.album_path).replace("./albums", ""))
-
-    # Actual validation process
-    print('loading album and doing inference...')
-    map = validate(model, val_loader, classes_list, args.threshold)
-    print("final validation map: {:.2f}".format(map))
 
     print('Done\n')
 
