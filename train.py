@@ -21,8 +21,6 @@ parser.add_argument('--split_path', type=str, default='/kaggle/working/split_dir
 parser.add_argument('--dataset_type', type=str, default='ML_CUFED')
 parser.add_argument('--train_batch_size', type=int, default=4, help='train batch size') # change
 parser.add_argument('--val_batch_size', type=int, default=16, help='validate batch size') # change
-# parser.add_argument('--transform_type', type=str, default='squish')
-# parser.add_argument('--album_sample', type=str, default='rand_permute')
 parser.add_argument('--num_workers', type=int, default=2, help='number of workers for data loader')
 parser.add_argument('-v', '--verbose', action='store_true', help='show details')
 parser.add_argument('--img_size', type=int, default=224)

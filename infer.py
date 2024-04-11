@@ -19,8 +19,6 @@ parser.add_argument('--num_classes', type=int, default=23)
 parser.add_argument('--model_name', type=str, default='mtresnetaggregate')
 parser.add_argument('--transformers_pos', type=int, default=1)
 parser.add_argument('--input_size', type=int, default=224)
-# parser.add_argument('--transform_type', type=str, default='squish')
-# parser.add_argument('--album_sample', type=str, default='rand_permute')
 parser.add_argument('--dataset_path', type=str, default='./data/ML_CUFED')
 parser.add_argument('--dataset_type', type=str, default='ML_CUFED')
 parser.add_argument('--path_output', type=str, default='./outputs')
@@ -34,7 +32,7 @@ parser.add_argument('--remove_model_jit', type=int, default=None)
 parser.add_argument('--ema', action='store_true', help='use ema model or not')
 
 
-def get_album(args):
+def get_album(args, device):
     files = os.listdir(args.album_path)
     n_files = len(files)
     idx_fetch = np.linspace(0, n_files-1, args.album_clip_length, dtype=int)
@@ -44,9 +42,10 @@ def get_album(args):
         im_resize = im.resize((args.input_size, args.input_size))
         np_img = np.array(im_resize, dtype=np.uint8)
         tensor_batch[i] = torch.from_numpy(np_img).float() / 255.0
-    tensor_batch = tensor_batch.permute(0, 3, 1, 2).cuda()   # HWC to CHW
-    # tensor_images = torch.unsqueeze(tensor_images, 0).cuda()
+    tensor_batch = tensor_batch.permute(0, 3, 1, 2)   # HWC to CHW
     montage = torchvision.utils.make_grid(tensor_batch).permute(1, 2, 0).cpu()
+    tensor_batch = torch.unsqueeze(tensor_batch, 0)
+    tensor_batch = tensor_batch.to(device)
     return tensor_batch, montage
 
 
@@ -62,12 +61,12 @@ def inference(tensor_batch, model, classes_list, args):
     return detected_classes[idx_th], scores[idx_th]
 
 
-def display_image(im, tags, filename, path_dest):
+def display_image(montage, tags, filename, path_dest):
     if not os.path.exists(path_dest):
         os.makedirs(path_dest)
 
     plt.figure()
-    plt.imshow(im)
+    plt.imshow(montage)
     plt.axis('off')
     plt.axis('tight')
     plt.rcParams["axes.titlesize"] = 16
@@ -98,7 +97,7 @@ def main():
         'Show', 'Sports', 'ThemePark', 'UrbanTrip', 'Wedding', 'Zoo'])
 
     # Get album
-    tensor_batch, montage = get_album(args)
+    tensor_batch, montage = get_album(args, device)
 
     # Inference
     tags, confs = inference(tensor_batch, model, classes_list, args)

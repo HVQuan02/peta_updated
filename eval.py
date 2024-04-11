@@ -17,8 +17,6 @@ parser.add_argument('--dataset_path', type=str, default='/kaggle/input/thesis-cu
 parser.add_argument('--split_path', type=str, default='/kaggle/working/split_dir')
 parser.add_argument('--dataset_type', type=str, default='ML_CUFED')
 parser.add_argument('--batch_size', type=int, default=32, help='batch size')
-# parser.add_argument('--transform_type', type=str, default='squish')
-# parser.add_argument('--album_sample', type=str, default='rand_permute')
 parser.add_argument('--num_workers', type=int, default=2, help='number of workers for data loader')
 parser.add_argument('--save_scores', action='store_true', help='save the output scores')
 parser.add_argument('--ema', action='store_true', help='use ema model or not')

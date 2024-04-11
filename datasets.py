@@ -45,6 +45,8 @@ class CUFED(Dataset):
         with open(split_path, 'r') as f:
             album_names = f.readlines()
         vidname_list = [name.strip() for name in album_names]
+        if self.phase == 'train':
+            vidname_list.remove('33_65073328@N00') # weird album
 
         labels_np = np.zeros((len(vidname_list), len(self.event_labels)), dtype=np.float32)
 
