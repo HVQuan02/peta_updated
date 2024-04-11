@@ -34,7 +34,6 @@ parser.add_argument('--remove_model_jit', type=int, default=None)
 
 
 def get_album(args):
-
     files = os.listdir(args.album_path)
     n_files = len(files)
     idx_fetch = np.linspace(0, n_files-1, args.album_clip_length, dtype=int)

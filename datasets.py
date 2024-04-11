@@ -26,15 +26,17 @@ class CUFED(Dataset):
                     'Protest', 'ReligiousActivity', 'Show', 'Sports', 'ThemePark',
                     'UrbanTrip', 'Wedding', 'Zoo']
 
-    def __init__(self, root_dir, split_dir, is_train, img_size, album_clip_length):
+    def __init__(self, root_dir, split_dir, is_train, is_val=False, img_size=224, album_clip_length=32):
         self.img_size = img_size
         self.album_clip_length = album_clip_length
         self.root_dir = root_dir
         self.phase = 'train' if is_train else 'test'
         if self.phase == 'train':
             split_path = os.path.join(split_dir, 'train_split.txt')
-        else:
+        elif is_val:
             split_path = os.path.join(split_dir, 'val_split.txt')
+        else:
+            split_path = os.path.join(split_dir, 'test_split.txt')
 
         label_path = os.path.join(root_dir, "event_type.json")
         with open(label_path, 'r') as f:

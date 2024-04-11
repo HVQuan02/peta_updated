@@ -16,13 +16,13 @@ parser.add_argument('--resume', default=None, help='checkpoint to resume trainin
 parser.add_argument('--model_name', type=str, default='mtresnetaggregate')
 parser.add_argument('--num_classes', type=int, default=23)
 parser.add_argument('--dataset', default='cufed', choices=['cufed', 'pec', 'holidays'])
-parser.add_argument('--dataset_path', type=str, default='/content/drive/MyDrive/CUFED-Event-Image/CUFED')
-parser.add_argument('--split_path', type=str, default='/content/drive/MyDrive/CUFED-Event-Image/CUFED')
+parser.add_argument('--dataset_path', type=str, default='/kaggle/input/thesis-cufed/CUFED')
+parser.add_argument('--split_path', type=str, default='/kaggle/working/split_dir')
 parser.add_argument('--dataset_type', type=str, default='ML_CUFED')
-parser.add_argument('--train_batch_size', type=int, default=5, help='batch size') # change
-parser.add_argument('--val_batch_size', type=int, default=32, help='batch size') # change
-parser.add_argument('--transform_type', type=str, default='squish')
-parser.add_argument('--album_sample', type=str, default='rand_permute')
+parser.add_argument('--train_batch_size', type=int, default=4, help='train batch size') # change
+parser.add_argument('--val_batch_size', type=int, default=16, help='validate batch size') # change
+# parser.add_argument('--transform_type', type=str, default='squish')
+# parser.add_argument('--album_sample', type=str, default='rand_permute')
 parser.add_argument('--num_workers', type=int, default=2, help='number of workers for data loader')
 parser.add_argument('-v', '--verbose', action='store_true', help='show details')
 parser.add_argument('--img_size', type=int, default=224)
@@ -32,14 +32,13 @@ parser.add_argument('--use_transformer', type=int, default=1)
 parser.add_argument('--transformers_pos', type=int, default=1)
 parser.add_argument('--lr', type=float, default=1e-5, help='base learning rate')
 parser.add_argument('--weight_decay', type=float, default=1e-3, help='weight decay rate')
-parser.add_argument('--milestones', nargs="+", type=int, default=[30, 60, 90, 120], help='milestones of learning decay')
 parser.add_argument('--warmup_epochs', type=int, default=10, help='number of warmup epochs')
-parser.add_argument('--max_epochs', type=int, default=150, help='number of epochs to train')
+parser.add_argument('--max_epochs', type=int, default=100, help='max number of epochs to train')
 parser.add_argument('--save_folder', default='weights', help='directory to save checkpoints')
 parser.add_argument('--loss', type=str, default='asymmetric', help='loss function')
 parser.add_argument('--patience', type=int, default=20, help='patience of early stopping')
-parser.add_argument('--min_delta', type=float, default=1e-2, help='min delta of early stopping')
-parser.add_argument('--threshold', type=float, default=0.1, help='loss threshold of early stopping')
+parser.add_argument('--min_delta', type=float, default=1e-3, help='min delta of early stopping') # change
+parser.add_argument('--threshold', type=float, default=0.1, help='val loss threshold of early stopping') # change
 args = parser.parse_args()
 
 def validate_one_epoch(model, val_loader, crit, device):
@@ -82,20 +81,22 @@ class EarlyStopper:
 
     def early_stop(self, validation_loss):
         if validation_loss <= self.threshold:
-            return True
+            return True, True
         if validation_loss < self.min_validation_loss:
             self.min_validation_loss = validation_loss
             self.counter = 0
+            return False, True
         elif validation_loss > (self.min_validation_loss + self.min_delta):
             self.counter += 1
             if self.counter >= self.patience:
-                return True
-        return False
+                return True, False
+            else:
+               return False, False
 
 def main():
   if args.dataset == 'cufed':
     train_dataset = CUFED(root_dir=args.dataset_path, split_dir=args.split_path, is_train=True, img_size=args.img_size, album_clip_length=args.album_clip_length)
-    val_dataset = CUFED(root_dir=args.dataset_path, split_dir=args.split_path, is_train=False, img_size=args.img_size, album_clip_length=args.album_clip_length)
+    val_dataset = CUFED(root_dir=args.dataset_path, split_dir=args.split_path, is_train=False, is_val=True, img_size=args.img_size, album_clip_length=args.album_clip_length)
   else:
     exit("Unknown dataset!")
 
@@ -119,7 +120,6 @@ def main():
   model = create_model(args).to(device)
   ema_model = AveragedModel(model, multi_avg_fn=get_ema_multi_avg_fn(0.999))
   opt = optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
-  # sched = optim.lr_scheduler.MultiStepLR(opt, milestones=args.milestones)
   sched = LinearWarmupCosineAnnealingLR(opt, args.warmup_epochs, args.max_epochs)
   early_stopper = EarlyStopper(patience=args.patience, min_delta=args.min_delta, threshold=args.threshold)
   if args.resume:
@@ -131,7 +131,6 @@ def main():
       if args.verbose:
           print("resuming from epoch {}".format(start_epoch))
 
-  saved_epoch = 0
   for epoch in range(start_epoch, args.max_epochs):
     t0 = time.perf_counter()
     train_loss = train_one_epoch(ema_model, model, train_loader, crit, opt, sched, device)
@@ -142,28 +141,29 @@ def main():
     t3 = time.perf_counter()
 
     epoch_cnt = epoch + 1
-    if early_stopper.early_stop(val_loss) or saved_epoch == args.max_epochs:
-      saved_epoch = epoch_cnt       
+    is_early_stopping, is_save_ckpt = early_stopper.early_stop(val_loss)
+    if is_save_ckpt:
+      torch.save({
+        'epoch': epoch_cnt,
+        'model': model.state_dict(),
+        'loss': train_loss,
+        'opt_state_dict': opt.state_dict(),
+        'sched_state_dict': sched.state_dict()
+      }, os.path.join(args.save_folder, 'model-cufed.pt')) 
+         
+    if is_early_stopping:
+      # Update bn statistics for the ema_model at the end
+      update_bn(train_loader, ema_model)
+      torch.save({
+        'epoch': epoch_cnt,
+        'model': ema_model.state_dict()
+      }, os.path.join(args.save_folder, 'EMA-model-cufed.pt'))
       print('Stop at epoch {}'.format(epoch_cnt)) 
       break
 
     if args.verbose:
-      print("[epoch {}] train_loss={} val_loss={} dt_train={:.2f}sec dt_val={:.2f}sec".format(epoch_cnt, train_loss, val_loss, t1 - t0, t3 - t2))
-  
-  torch.save({
-      'epoch': saved_epoch,
-      'model': model.state_dict(),
-      'loss': train_loss,
-      'opt_state_dict': opt.state_dict(),
-      'sched_state_dict': sched.state_dict()
-  }, os.path.join(args.save_folder, 'model-cufed-{:03d}.pt'.format(saved_epoch)) )    
+      print("[epoch {}] train_loss={} val_loss={} dt_train={:.2f}sec dt_val={:.2f}sec dt={:.2f}sec".format(epoch_cnt, train_loss, val_loss, t1 - t0, t3 - t2, t1 - t0 + t3 - t2))  
 
-  # Update bn statistics for the ema_model at the end
-  update_bn(train_loader, ema_model)
-  torch.save({
-    'epoch': saved_epoch,
-    'model': ema_model.state_dict()
-  }, os.path.join(args.save_folder, 'EMA-model-cufed-{:03d}.pt'.format(saved_epoch)))
 
 if __name__ == '__main__':
   main()
