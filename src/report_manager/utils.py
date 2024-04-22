@@ -91,10 +91,10 @@ class AccumMetricG(Metric):
 #         res.append(correct_k.mul_(100.0 / batch_size))
 #     return res
 
-def accuracy(inp, targ, axis=-1):
+def accuracy(inp, targ, axis=-1): # debug
     "Compute accuracy with `targ` when `pred` is bs * n_classes"
-    pred,targ = flatten_check(inp.argmax(dim=axis), targ)
-    return (pred == targ).float().mean()
+    pred,targ = flatten_check(inp.argmax(axis=axis), targ)
+    return (pred == targ).float().mean() * 100
 
 
 def average_precision(output, target):

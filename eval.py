@@ -3,7 +3,9 @@ import time
 import torch
 from torch.utils.data import DataLoader
 from src.models import create_model
-from sklearn.metrics import average_precision_score, accuracy_score
+# from sklearn.metrics import average_precision_score, accuracy_score
+from src.utils.evaluation import AP_partial
+from src.report_manager.utils import accuracy
 from torch.optim.swa_utils import AveragedModel, get_ema_multi_avg_fn
 from datasets import CUFED
 
@@ -88,10 +90,10 @@ def main():
     out_file.close()
 
   if args.metric == 'map':
-    mark = average_precision_score(dataset.labels, scores) 
+    mark = AP_partial(dataset.labels, scores)[1]
   else:
-    mark = accuracy_score(dataset.labels, scores)
-  print('top1={:.2f}% dt={:.2f}sec'.format(100 * mark, t1 - t0))
+    mark = accuracy(dataset.labels, scores)
+  print('top1_{}={:.2f}% dt={:.2f}sec'.format(args.metric, mark, t1 - t0))
 
 if __name__ == '__main__':
   main()

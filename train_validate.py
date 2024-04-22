@@ -6,6 +6,7 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
 from src.models import create_model
+from src.utils.evaluation import AP_partial
 from src.loss_functions.asymmetric_loss import AsymmetricLossOptimized
 from flash.core.optimizers import LinearWarmupCosineAnnealingLR
 from torch.optim.swa_utils import AveragedModel, get_ema_multi_avg_fn, update_bn
@@ -35,22 +36,28 @@ parser.add_argument('--max_epochs', type=int, default=100, help='max number of e
 parser.add_argument('--save_folder', default='weights', help='directory to save checkpoints')
 parser.add_argument('--loss', type=str, default='asymmetric', help='loss function')
 parser.add_argument('--patience', type=int, default=20, help='patience of early stopping')
-parser.add_argument('--min_delta', type=float, default=1e-3, help='min delta of early stopping') # change
-parser.add_argument('--threshold', type=float, default=0.1, help='val loss threshold of early stopping') # change
+parser.add_argument('--min_delta', type=float, default=1, help='min delta of early stopping')
+parser.add_argument('--threshold', type=float, default=95, help='val mAP threshold of early stopping')
 args = parser.parse_args()
 
 def validate_one_epoch(model, val_loader, crit, device):
   model.eval()
-  epoch_loss = 0
+  # epoch_loss = 0
+  preds = targs = []
   with torch.no_grad():
     for batch in val_loader:
-      feats, label = batch
+      feats, labels = batch
       feats = feats.to(device)
-      label = label.to(device)
+      labels = labels.to(device)
       out_data = model(feats)
-      loss = crit(out_data, label)
-      epoch_loss += loss.item()
-  return epoch_loss / len(val_loader)
+      # loss = crit(out_data, labels)
+      preds.append(out_data)
+      targs.append(labels)
+      # epoch_loss += loss.item(labels, out_data)
+  # return epoch_loss / len(val_loader)
+  preds = torch.cat(preds).cpu().detach().numpy()
+  targs = torch.cat(targs).cpu().detach().numpy()
+  return AP_partial(targs, preds)
 
 def train_one_epoch(ema_model, model, train_loader, crit, opt, sched, device):
   model.train()
@@ -74,19 +81,19 @@ class EarlyStopper:
         self.patience = patience
         self.min_delta = min_delta
         self.counter = 0
-        self.min_validation_loss = float('inf')
+        self.max_validation_mAP = -float('inf')
         self.threshold = threshold
 
-    def early_stop(self, validation_loss):
-        if validation_loss <= self.threshold:
+    def early_stop(self, validation_mAP):
+        if validation_mAP >= self.threshold:
             return True, True
-        if validation_loss < self.min_validation_loss:
-            self.min_validation_loss = validation_loss
+        if validation_mAP > self.max_validation_mAP:
+            self.max_validation_mAP = validation_mAP
             self.counter = 0
             return False, True
-        elif validation_loss > (self.min_validation_loss + self.min_delta):
+        elif validation_mAP < (self.max_validation_mAP - self.min_delta):
             self.counter += 1
-            if self.counter >= self.patience:
+            if self.counter > self.patience:
                 return True, False
             else:
                return False, False
@@ -135,11 +142,11 @@ def main():
     t1 = time.perf_counter()
 
     t2 = time.perf_counter()
-    val_loss = validate_one_epoch(model, val_loader, crit, device)
+    val_mAP = validate_one_epoch(model, val_loader, crit, device)
     t3 = time.perf_counter()
 
     epoch_cnt = epoch + 1
-    is_early_stopping, is_save_ckpt = early_stopper.early_stop(val_loss)
+    is_early_stopping, is_save_ckpt = early_stopper.early_stop(val_mAP)
     if is_save_ckpt:
       torch.save({
         'epoch': epoch_cnt,
@@ -160,8 +167,7 @@ def main():
       break
 
     if args.verbose:
-      print("[epoch {}] train_loss={} val_loss={} dt_train={:.2f}sec dt_val={:.2f}sec dt={:.2f}sec".format(epoch_cnt, train_loss, val_loss, t1 - t0, t3 - t2, t1 - t0 + t3 - t2))  
-
+      print("[epoch {}] train_loss={} val_mAP={} dt_train={:.2f}sec dt_val={:.2f}sec dt={:.2f}sec".format(epoch_cnt, train_loss, val_mAP, t1 - t0, t3 - t2, t1 - t0 + t3 - t2))  
 
 if __name__ == '__main__':
   main()
