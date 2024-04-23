@@ -4,7 +4,6 @@ import os
 import torch
 import numpy as np
 import torch.nn as nn
-import torch.optim as optim
 from torch.utils.data import DataLoader
 from src.models import create_model
 from src.utils.evaluation import AP_partial
@@ -24,7 +23,7 @@ parser.add_argument('--split_path', type=str, default='/kaggle/working/split_dir
 parser.add_argument('--dataset_type', type=str, default='ML_CUFED')
 parser.add_argument('--train_batch_size', type=int, default=5, help='train batch size')
 parser.add_argument('--val_batch_size', type=int, default=20, help='validate batch size')
-parser.add_argument('--num_workers', type=int, default=2, help='number of workers for data loader')
+parser.add_argument('--num_workers', type=int, default=4, help='number of workers for data loader')
 parser.add_argument('-v', '--verbose', action='store_true', help='show details')
 parser.add_argument('--img_size', type=int, default=224)
 parser.add_argument('--album_clip_length', type=int, default=32)
@@ -132,22 +131,22 @@ def main():
   ema_model = AveragedModel(model, multi_avg_fn=get_ema_multi_avg_fn(0.999))
 
   if args.optimizer == 'adam':
-    opt = optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
+    opt = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
   elif args.optimizer == 'adamw':
-    opt = optim.AdamW(model.parameters(), lr=args.lr)
+    opt = torch.optim.AdamW(model.parameters(), lr=args.lr)
   elif args.optimizer == 'sgd':
-    opt = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum)
+    opt = torch.optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum)
   else:
      exit('Unknown optimizer')
      
   if args.lr_policy == 'cosine':
     sched = LinearWarmupCosineAnnealingLR(opt, args.warmup_epochs, args.max_epochs)
   elif args.lr_policy == 'step':
-    sched = optim.lr_scheduler.StepLR(opt, step_size=args.lr_step, gamma=args.lr_gamma)
+    sched = torch.optim.lr_scheduler.StepLR(opt, step_size=args.lr_step, gamma=args.lr_gamma)
   elif args.lr_policy == 'multi_step':
-    sched = optim.lr_scheduler.MultiStepLR(opt, milestones=args.lr_milestones, gamma=args.lr_gamma)
+    sched = torch.optim.lr_scheduler.MultiStepLR(opt, milestones=args.lr_milestones, gamma=args.lr_gamma)
   elif args.lr_policy == 'onecycle':
-    sched = optim.lr_scheduler.OneCycleLR(opt, max_lr=args.lr, steps_per_epoch=len(train_loader), epochs=args.max_epochs, pct_start=0.2)
+    sched = torch.optim.lr_scheduler.OneCycleLR(opt, max_lr=args.lr, steps_per_epoch=len(train_loader), epochs=args.max_epochs, pct_start=0.2)
   else:
      exit('Unknown optimization lr')
 
