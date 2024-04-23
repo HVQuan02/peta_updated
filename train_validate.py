@@ -32,19 +32,19 @@ parser.add_argument('--use_transformer', type=int, default=1)
 parser.add_argument('--transformers_pos', type=int, default=1)
 parser.add_argument('--optimizer', type=str, default='adam', choices=['sgd', 'adam', 'adamw'])
 parser.add_argument('--lr_policy', type=str, default='cosine', choices=['cosine', 'step', 'multi_step', 'onecycle'])
-parser.add_argument('--lr', type=float, default=1e-5, help='base learning rate')
+parser.add_argument('--lr', type=float, default=2e-4, help='base learning rate')
 parser.add_argument('--lr_gamma', type=float, default=0.5)
 parser.add_argument('--lr_step', type=int, default=10)
-parser.add_argument('--lr_milestones', nargs="+", type=int, default=[20, 40, 60, 80, 100], help='milestones of learning decay')
-parser.add_argument('--weight_decay', type=float, default=1e-3, help='weight decay rate')
+parser.add_argument('--lr_milestones', nargs="+", type=int, default=[20, 40, 60, 80, 100, 120], help='milestones of learning decay')
+parser.add_argument('--weight_decay', type=float, default=1e-4, help='weight decay rate')
 parser.add_argument('--momentum', type=float, default=0.9, help='momentum for sgd optimizer')
-parser.add_argument('--warmup_epochs', type=int, default=10, help='number of warmup epochs')
-parser.add_argument('--max_epochs', type=int, default=100, help='max number of epochs to train')
+parser.add_argument('--warmup_epochs', type=int, default=5, help='number of warmup epochs')
+parser.add_argument('--max_epochs', type=int, default=150, help='max number of epochs to train')
 parser.add_argument('--save_folder', default='weights', help='directory to save checkpoints')
 parser.add_argument('--loss', type=str, default='asymmetric', help='loss function')
 parser.add_argument('--patience', type=int, default=20, help='patience of early stopping')
 parser.add_argument('--min_delta', type=float, default=1, help='min delta of early stopping')
-parser.add_argument('--threshold', type=float, default=95, help='val mAP threshold of early stopping')
+parser.add_argument('--threshold', type=float, default=90, help='val mAP threshold of early stopping')
 args = parser.parse_args()
 
 def validate_one_epoch(model, val_loader, val_dataset, device):
@@ -133,7 +133,7 @@ def main():
   if args.optimizer == 'adam':
     opt = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
   elif args.optimizer == 'adamw':
-    opt = torch.optim.AdamW(model.parameters(), lr=args.lr)
+    opt = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
   elif args.optimizer == 'sgd':
     opt = torch.optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum)
   else:
