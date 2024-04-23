@@ -11,6 +11,8 @@ from src.loss_functions.asymmetric_loss import AsymmetricLossOptimized
 from flash.core.optimizers import LinearWarmupCosineAnnealingLR
 from torch.optim.swa_utils import AveragedModel, get_ema_multi_avg_fn, update_bn
 from datasets import CUFED
+from models.models import MTResnetAggregate
+from options.train_options import TrainOptions
 
 parser = argparse.ArgumentParser(description='PETA: Photo Album Event Recognition')
 parser.add_argument('--seed', default=2024, help='seed for randomness')
@@ -103,6 +105,7 @@ def main():
   np.random.seed(args.seed)
   torch.manual_seed(args.seed)
   torch.cuda.manual_seed(args.seed)
+  train_opt = TrainOptions().parse()
 
   if args.dataset == 'cufed':
     train_dataset = CUFED(root_dir=args.dataset_path, split_dir=args.split_path, is_train=True, img_size=args.img_size, album_clip_length=args.album_clip_length)
@@ -127,7 +130,9 @@ def main():
     print("num samples of val = {}".format(len(val_dataset)))
 
   start_epoch = 0
-  model = create_model(args).to(device)
+  # model = create_model(args).to(device) # model original peta
+  model = MTResnetAggregate(train_opt).to(device) # model k18
+
   ema_model = AveragedModel(model, multi_avg_fn=get_ema_multi_avg_fn(0.999))
 
   if args.optimizer == 'adam':
