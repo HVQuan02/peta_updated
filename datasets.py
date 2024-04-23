@@ -58,7 +58,7 @@ class CUFED(Dataset):
                 with open(filepath, 'r') as file:
                     vidname_list.extend(file.read().splitlines())
 
-        if self.phase == 'train':
+        if '33_65073328@N00' in vidname_list:
             vidname_list.remove('33_65073328@N00') # remove weird album
 
         labels_np = np.zeros((len(vidname_list), len(self.event_labels)), dtype=np.float32)

@@ -48,7 +48,7 @@ def validate_one_epoch(model, val_loader, crit, device):
     for batch in val_loader:
       feats, labels = batch
       feats = feats.to(device)
-      labels = labels.to(device)
+      # labels = labels.to(device)
       out_data = model(feats)
       # loss = crit(out_data, labels)
       preds.append(out_data)
@@ -57,7 +57,7 @@ def validate_one_epoch(model, val_loader, crit, device):
   # return epoch_loss / len(val_loader)
   preds = torch.cat(preds).cpu().detach().numpy()
   targs = torch.cat(targs).cpu().detach().numpy()
-  return AP_partial(targs, preds)
+  return AP_partial(targs, preds)[1]
 
 def train_one_epoch(ema_model, model, train_loader, crit, opt, sched, device):
   model.train()
@@ -91,12 +91,11 @@ class EarlyStopper:
             self.max_validation_mAP = validation_mAP
             self.counter = 0
             return False, True
-        elif validation_mAP < (self.max_validation_mAP - self.min_delta):
+        if validation_mAP < (self.max_validation_mAP - self.min_delta):
             self.counter += 1
             if self.counter > self.patience:
                 return True, False
-            else:
-               return False, False
+        return False, False
 
 def main():
   if args.dataset == 'cufed':
