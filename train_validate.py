@@ -40,24 +40,19 @@ parser.add_argument('--min_delta', type=float, default=1, help='min delta of ear
 parser.add_argument('--threshold', type=float, default=95, help='val mAP threshold of early stopping')
 args = parser.parse_args()
 
-def validate_one_epoch(model, val_loader, crit, device):
+def validate_one_epoch(model, val_loader, val_dataset, device):
   model.eval()
-  # epoch_loss = 0
-  preds = targs = []
+  scores = torch.zeros((len(val_dataset), len(val_dataset.event_labels)), dtype=torch.float32)
+  gidx = 0
   with torch.no_grad():
     for batch in val_loader:
-      feats, labels = batch
+      feats, _ = batch
       feats = feats.to(device)
-      # labels = labels.to(device)
       out_data = model(feats)
-      # loss = crit(out_data, labels)
-      preds.append(out_data)
-      targs.append(labels)
-      # epoch_loss += loss.item(labels, out_data)
-  # return epoch_loss / len(val_loader)
-  preds = torch.cat(preds).cpu().detach().numpy()
-  targs = torch.cat(targs).cpu().detach().numpy()
-  return AP_partial(targs, preds)[1]
+      shape = out_data.shape[0]
+      scores[gidx:gidx+shape, :] = out_data.cpu()
+      gidx += shape
+  return AP_partial(val_dataset.labels, scores)[1]
 
 def train_one_epoch(ema_model, model, train_loader, crit, opt, sched, device):
   model.train()
@@ -141,7 +136,7 @@ def main():
     t1 = time.perf_counter()
 
     t2 = time.perf_counter()
-    val_mAP = validate_one_epoch(model, val_loader, crit, device)
+    val_mAP = validate_one_epoch(model, val_loader, val_dataset, device)
     t3 = time.perf_counter()
 
     epoch_cnt = epoch + 1

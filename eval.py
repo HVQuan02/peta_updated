@@ -41,14 +41,12 @@ def evaluate(model, dataset, loader, scores, out_file, device):
             feats = feats.to(device)
             out_data = model(feats)
             shape = out_data.shape[0]
-
             if out_file:
                 for j in range(shape):
                     video_name = dataset.videos[gidx + j]
                     out_file.write("{} ".format(video_name))
                     out_file.write(' '.join([str(x.item()) for x in out_data[j, :]]))
                     out_file.write('\n')
-
             scores[gidx:gidx+shape, :] = out_data.cpu()
             gidx += shape
 
