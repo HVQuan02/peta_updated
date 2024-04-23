@@ -135,8 +135,10 @@ def main():
     opt = optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
   elif args.optimizer == 'adamw':
     opt = optim.AdamW(model.parameters(), lr=args.lr)
-  else:
+  elif args.optimizer == 'sgd':
     opt = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum)
+  else:
+     exit('Unknown optimizer')
      
   if args.lr_policy == 'cosine':
     sched = LinearWarmupCosineAnnealingLR(opt, args.warmup_epochs, args.max_epochs)
@@ -144,8 +146,10 @@ def main():
     sched = optim.lr_scheduler.StepLR(opt, step_size=args.lr_step, gamma=args.lr_gamma)
   elif args.lr_policy == 'multi_step':
     sched = optim.lr_scheduler.MultiStepLR(opt, milestones=args.lr_milestones, gamma=args.lr_gamma)
-  else:
+  elif args.lr_policy == 'onecycle':
     sched = optim.lr_scheduler.OneCycleLR(opt, max_lr=args.lr, steps_per_epoch=len(train_loader), epochs=args.max_epochs, pct_start=0.2)
+  else:
+     exit('Unknown optimization lr')
 
   early_stopper = EarlyStopper(patience=args.patience, min_delta=args.min_delta, threshold=args.threshold)
 
