@@ -2,6 +2,7 @@ import argparse
 import time
 import os
 import torch
+import numpy as np
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
@@ -13,6 +14,7 @@ from torch.optim.swa_utils import AveragedModel, get_ema_multi_avg_fn, update_bn
 from datasets import CUFED
 
 parser = argparse.ArgumentParser(description='PETA: Photo Album Event Recognition')
+parser.add_argument('--seed', default=2024, help='seed for randomness')
 parser.add_argument('--resume', default=None, help='checkpoint to resume training')
 parser.add_argument('--model_name', type=str, default='mtresnetaggregate')
 parser.add_argument('--num_classes', type=int, default=23)
@@ -20,8 +22,8 @@ parser.add_argument('--dataset', default='cufed', choices=['cufed', 'pec', 'holi
 parser.add_argument('--dataset_path', type=str, default='/kaggle/input/thesis-cufed/CUFED')
 parser.add_argument('--split_path', type=str, default='/kaggle/working/split_dir')
 parser.add_argument('--dataset_type', type=str, default='ML_CUFED')
-parser.add_argument('--train_batch_size', type=int, default=4, help='train batch size') # change
-parser.add_argument('--val_batch_size', type=int, default=16, help='validate batch size') # change
+parser.add_argument('--train_batch_size', type=int, default=5, help='train batch size')
+parser.add_argument('--val_batch_size', type=int, default=20, help='validate batch size')
 parser.add_argument('--num_workers', type=int, default=2, help='number of workers for data loader')
 parser.add_argument('-v', '--verbose', action='store_true', help='show details')
 parser.add_argument('--img_size', type=int, default=224)
@@ -29,8 +31,14 @@ parser.add_argument('--album_clip_length', type=int, default=32)
 parser.add_argument('--remove_model_jit', type=int, default=None)
 parser.add_argument('--use_transformer', type=int, default=1)
 parser.add_argument('--transformers_pos', type=int, default=1)
+parser.add_argument('--optimizer', type=str, default='adam', choices=['sgd', 'adam', 'adamw'])
+parser.add_argument('--lr_policy', type=str, default='cosine', choices=['cosine', 'step', 'multi_step', 'onecycle'])
 parser.add_argument('--lr', type=float, default=1e-5, help='base learning rate')
+parser.add_argument('--lr_gamma', type=float, default=0.5)
+parser.add_argument('--lr_step', type=int, default=10)
+parser.add_argument('--lr_milestones', nargs="+", type=int, default=[20, 40, 60, 80, 100], help='milestones of learning decay')
 parser.add_argument('--weight_decay', type=float, default=1e-3, help='weight decay rate')
+parser.add_argument('--momentum', type=float, default=0.9, help='momentum for sgd optimizer')
 parser.add_argument('--warmup_epochs', type=int, default=10, help='number of warmup epochs')
 parser.add_argument('--max_epochs', type=int, default=100, help='max number of epochs to train')
 parser.add_argument('--save_folder', default='weights', help='directory to save checkpoints')
@@ -52,7 +60,7 @@ def validate_one_epoch(model, val_loader, val_dataset, device):
       shape = out_data.shape[0]
       scores[gidx:gidx+shape, :] = out_data.cpu()
       gidx += shape
-  return AP_partial(val_dataset.labels, scores)[1]
+  return AP_partial(val_dataset.labels, scores.numpy())[1]
 
 def train_one_epoch(ema_model, model, train_loader, crit, opt, sched, device):
   model.train()
@@ -93,6 +101,10 @@ class EarlyStopper:
         return False, False
 
 def main():
+  np.random.seed(args.seed)
+  torch.manual_seed(args.seed)
+  torch.cuda.manual_seed(args.seed)
+
   if args.dataset == 'cufed':
     train_dataset = CUFED(root_dir=args.dataset_path, split_dir=args.split_path, is_train=True, img_size=args.img_size, album_clip_length=args.album_clip_length)
     val_dataset = CUFED(root_dir=args.dataset_path, split_dir=args.split_path, is_train=False, is_val=True, img_size=args.img_size, album_clip_length=args.album_clip_length)
@@ -118,9 +130,25 @@ def main():
   start_epoch = 0
   model = create_model(args).to(device)
   ema_model = AveragedModel(model, multi_avg_fn=get_ema_multi_avg_fn(0.999))
-  opt = optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
-  sched = LinearWarmupCosineAnnealingLR(opt, args.warmup_epochs, args.max_epochs)
+
+  if args.optimizer == 'adam':
+    opt = optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
+  elif args.optimizer == 'adamw':
+    opt = optim.AdamW(model.parameters(), lr=args.lr)
+  else:
+    opt = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum)
+     
+  if args.lr_policy == 'cosine':
+    sched = LinearWarmupCosineAnnealingLR(opt, args.warmup_epochs, args.max_epochs)
+  elif args.lr_policy == 'step':
+    sched = optim.lr_scheduler.StepLR(opt, step_size=args.lr_step, gamma=args.lr_gamma)
+  elif args.lr_policy == 'multi_step':
+    sched = optim.lr_scheduler.MultiStepLR(opt, milestones=args.lr_milestones, gamma=args.lr_gamma)
+  else:
+    sched = optim.lr_scheduler.OneCycleLR(opt, max_lr=args.lr, steps_per_epoch=len(train_loader), epochs=args.max_epochs, pct_start=0.2)
+
   early_stopper = EarlyStopper(patience=args.patience, min_delta=args.min_delta, threshold=args.threshold)
+
   if args.resume:
       data = torch.load(args.resume)
       start_epoch = data['epoch']
@@ -153,10 +181,22 @@ def main():
     if is_early_stopping:
       # Update bn statistics for the ema_model at the end
       update_bn(train_loader, ema_model)
+
+      # save last model
+      torch.save({
+        'epoch': epoch_cnt,
+        'model': model.state_dict(),
+        'loss': train_loss,
+        'opt_state_dict': opt.state_dict(),
+        'sched_state_dict': sched.state_dict()
+      }, os.path.join(args.save_folder, 'PETA-cufed-last.pt')) 
+
+      # save ema model
       torch.save({
         'epoch': epoch_cnt,
         'model': ema_model.state_dict()
       }, os.path.join(args.save_folder, 'EMA-PETA-cufed.pt'))
+
       print('Stop at epoch {}'.format(epoch_cnt)) 
       break
 
