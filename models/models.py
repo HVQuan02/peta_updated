@@ -57,7 +57,8 @@ class fTResNet(nn.Module):
 
     def forward(self, x, filenames=None):
         B, N, C, H, W = x.shape
-        x = self.feature_extraction.forward_features(x.view(B*N, C, H, W))
+        x = x.view(B*N, C, H, W)
+        x = self.feature_extraction.forward_features(x)
         # x = self.body(x)
         self.embeddings = self.global_pool(x)
         importance = self.fc1(self.embeddings)

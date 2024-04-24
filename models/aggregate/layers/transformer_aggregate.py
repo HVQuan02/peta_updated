@@ -72,10 +72,10 @@ class TAggregate(nn.Module):
             nn.init.constant_(m.weight, 1.0)
 
     def forward(self, x, filenames=None):
-        # self.clip_length = x.shape[0] if self.args.infer == True else self.clip_length
-        # nvids = x.shape[0] // self.clip_length
-        # x = x.view((nvids, self.clip_length, -1))
-        nvids = x.shape[0]
+        self.clip_length = x.shape[0] if self.args.infer == True else self.clip_length
+        nvids = x.shape[0] // self.clip_length
+        x = x.view((nvids, self.clip_length, -1))
+        # nvids = x.shape[0]
         pre_aggregate = torch.clone(x)
         cls_tokens = self.cls_token.expand(nvids, -1, -1)
         x = torch.cat((cls_tokens, x), dim=1)
