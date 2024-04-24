@@ -70,10 +70,10 @@ class EarlyStopper:
         return False, False
 
 def main():
+  args = TrainOptions().parse()
   np.random.seed(args.seed)
   torch.manual_seed(args.seed)
   torch.cuda.manual_seed(args.seed)
-  train_opt = TrainOptions().parse()
 
   if args.dataset == 'cufed':
     train_dataset = CUFED(root_dir=args.dataset_path, split_dir=args.split_path, is_train=True, img_size=args.img_size, album_clip_length=args.album_clip_length)
@@ -99,7 +99,7 @@ def main():
 
   start_epoch = 0
   # model = create_model(args).to(device) # model original peta
-  model = MTResnetAggregate(train_opt).to(device) # model k18
+  model = MTResnetAggregate(args).to(device) # model k18
 
   ema_model = AveragedModel(model, multi_avg_fn=get_ema_multi_avg_fn(0.999))
 
