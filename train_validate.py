@@ -1,11 +1,9 @@
-import argparse
 import time
 import os
 import torch
 import numpy as np
 import torch.nn as nn
 from torch.utils.data import DataLoader
-# from src.models import create_model
 from src.utils.evaluation import AP_partial
 from src.loss_functions.asymmetric_loss import AsymmetricLossOptimized
 from flash.core.optimizers import LinearWarmupCosineAnnealingLR
@@ -13,9 +11,6 @@ from torch.optim.swa_utils import AveragedModel, get_ema_multi_avg_fn, update_bn
 from datasets import CUFED
 from models.models import MTResnetAggregate
 from options.train_options import TrainOptions
-
-# parser = argparse.ArgumentParser(description='PETA: Photo Album Event Recognition')
-# args = parser.parse_args()
 
 def validate_one_epoch(model, val_loader, val_dataset, device):
   model.eval()
@@ -25,9 +20,9 @@ def validate_one_epoch(model, val_loader, val_dataset, device):
     for batch in val_loader:
       feats, _ = batch
       feats = feats.to(device)
-      out_data = model(feats)
-      shape = out_data.shape[0]
-      scores[gidx:gidx+shape, :] = out_data.cpu()
+      logits, importance = model(feats)
+      shape = logits.shape[0]
+      scores[gidx:gidx+shape, :] = logits.cpu()
       gidx += shape
   return AP_partial(val_dataset.labels, scores.numpy())[1]
 
@@ -39,8 +34,8 @@ def train_one_epoch(ema_model, model, train_loader, crit, opt, sched, device):
     feats = feats.to(device)
     label = label.to(device)
     opt.zero_grad()
-    out_data = model(feats)
-    loss = crit(out_data, label)
+    logits, importance = model(feats)
+    loss = crit(logits, label)
     loss.backward()
     opt.step()
     ema_model.update_parameters(model)
