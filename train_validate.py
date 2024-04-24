@@ -5,7 +5,7 @@ import torch
 import numpy as np
 import torch.nn as nn
 from torch.utils.data import DataLoader
-from src.models import create_model
+# from src.models import create_model
 from src.utils.evaluation import AP_partial
 from src.loss_functions.asymmetric_loss import AsymmetricLossOptimized
 from flash.core.optimizers import LinearWarmupCosineAnnealingLR
@@ -21,7 +21,7 @@ parser.add_argument('--model_name', type=str, default='mtresnetaggregate')
 parser.add_argument('--num_classes', type=int, default=23)
 parser.add_argument('--dataset', default='cufed', choices=['cufed', 'pec', 'holidays'])
 parser.add_argument('--dataset_path', type=str, default='/kaggle/input/thesis-cufed/CUFED')
-parser.add_argument('--split_path', type=str, default='/kaggle/working/split_dir')
+parser.add_argument('--split_path', type=str, default='/kaggle/working/full_split')
 parser.add_argument('--dataset_type', type=str, default='ML_CUFED')
 parser.add_argument('--train_batch_size', type=int, default=5, help='train batch size')
 parser.add_argument('--val_batch_size', type=int, default=20, help='validate batch size')
