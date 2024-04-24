@@ -95,7 +95,6 @@ def main():
   start_epoch = 0
   # model = create_model(args).to(device) # model original peta
   model = MTResnetAggregate(args).to(device) # model k18
-
   ema_model = AveragedModel(model, multi_avg_fn=get_ema_multi_avg_fn(0.999))
 
   if args.optimizer == 'adam':
@@ -140,6 +139,7 @@ def main():
 
     epoch_cnt = epoch + 1
     is_early_stopping, is_save_ckpt = early_stopper.early_stop(val_mAP)
+
     if is_save_ckpt:
       torch.save({
         'epoch': epoch_cnt,
@@ -149,7 +149,7 @@ def main():
         'sched_state_dict': sched.state_dict()
       }, os.path.join(args.save_folder, 'PETA-cufed.pt')) 
          
-    if is_early_stopping:
+    if is_early_stopping or epoch_cnt == args.max_epochs:
       # Update bn statistics for the ema_model at the end
       update_bn(train_loader, ema_model)
 
