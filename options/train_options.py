@@ -20,10 +20,6 @@ class TrainOptions(BaseOptions):
         parser.add_argument('--threshold', type=float, default=0.85)
         parser.add_argument('--ckpt_path', type=str, default='/kaggle/working/peta_k18_thesis/model_ckpt')
 
-        # batch size
-        parser.add_argument('--train_batch_size', type=int, default=64)
-        parser.add_argument('--val_batch_size', type=int, default=2)
-
         # accelerator
         parser.add_argument('--devices', type=int, default=1)
         parser.add_argument('--acc', type=str, default='gpu', choices=['cpu', 'gpu', 'tpu'])
@@ -44,17 +40,11 @@ class TrainOptions(BaseOptions):
                             help='apply color jitter in augmentation')
 
         parser.add_argument('--resume', type=str,
-                            help='resume path for continue training (.ckpt)')
+                          help='resume path for continue training (.ckpt)')
 
         parser.add_argument('--max_epoch', type=int,
                             default=100, help='maximum epochs')
-
-        parser.add_argument('--optimizer', type=str, default='adam',
-                            help='optimizer to be used: adam, sgd')
-        parser.add_argument('--lr', type=float, default=0.001,
-                            help='initial learning rate for optimizer')
-        parser.add_argument('--weight_decay', type=float,
-                            default=0.0005, help='momentum factor for optimizer')
+        
         # adam
         parser.add_argument('--beta1', type=float,
                             default=0.5, help='momentum term of adam')
@@ -63,8 +53,6 @@ class TrainOptions(BaseOptions):
                             default=0.9, help='momentum factor for sgd')
 
         # learning rate scheduler
-        parser.add_argument('--lr_policy', type=str, default='step',
-                            help='learning rate policy: exp, step, multi_step')
         parser.add_argument('--lr_step', type=int, default=10,
                             help='step_size for step lr scheduler')
         parser.add_argument('--lr_milestones', metavar='N', nargs="+",
@@ -73,14 +61,12 @@ class TrainOptions(BaseOptions):
                             default=0.9, help='gamma factor for lr_scheduler')
 
         # For early stopping
-        parser.add_argument('--patience', type=int, default=-1,
-                            help='stops training after a number of epochs without improvement')
         parser.add_argument('--stopping_threshold', type=float, default=90, 
                             help='stops training when reach this threshold measured in mAP metric')
 
         # Choosing loss functions
-        parser.add_argument('--loss', nargs="+", type=str, default=[
-                            'folcal', 'asymmetric'], help='loss options for training: ce, ohem, tversky')
+        parser.add_argument('--loss', type=str, nargs='+', default='asymmetric', choices=[
+                            'focal', 'asymmetric', 'bce'], help='loss function')
         parser.add_argument('--use_aux', action='store_true',
                             help='apply auxilary loss while training. Currently use with OCR net')
         parser.add_argument('--ocr_alpha_loss', type=float,
@@ -103,37 +89,26 @@ class TrainOptions(BaseOptions):
         parser.add_argument('--attention', type=str,
                             default='multihead')
         # my peta
-        parser.add_argument('--seed', default=2024, help='seed for randomness')
-        parser.add_argument('--resume', default=None, help='checkpoint to resume training')
         parser.add_argument('--model_name', type=str, default='mtresnetaggregate')
-        parser.add_argument('--num_classes', type=int, default=23)
         parser.add_argument('--dataset', default='cufed', choices=['cufed', 'pec', 'holidays'])
         parser.add_argument('--dataset_path', type=str, default='/kaggle/input/thesis-cufed/CUFED')
-        parser.add_argument('--split_path', type=str, default='/kaggle/working/full_split')
+        parser.add_argument('--split_path', type=str, default='/kaggle/input/full-split')
         parser.add_argument('--dataset_type', type=str, default='ML_CUFED')
         parser.add_argument('--train_batch_size', type=int, default=5, help='train batch size')
         parser.add_argument('--val_batch_size', type=int, default=20, help='validate batch size')
         parser.add_argument('--num_workers', type=int, default=4, help='number of workers for data loader')
         parser.add_argument('-v', '--verbose', action='store_true', help='show details')
         parser.add_argument('--img_size', type=int, default=224)
-        parser.add_argument('--album_clip_length', type=int, default=32)
         parser.add_argument('--remove_model_jit', type=int, default=None)
-        parser.add_argument('--use_transformer', type=int, default=1)
-        parser.add_argument('--transformers_pos', type=int, default=1)
         parser.add_argument('--optimizer', type=str, default='adam', choices=['sgd', 'adam', 'adamw'])
         parser.add_argument('--lr_policy', type=str, default='cosine', choices=['cosine', 'step', 'multi_step', 'onecycle'])
         parser.add_argument('--lr', type=float, default=2e-4, help='base learning rate')
-        parser.add_argument('--lr_gamma', type=float, default=0.5)
-        parser.add_argument('--lr_step', type=int, default=10)
-        parser.add_argument('--lr_milestones', nargs="+", type=int, default=[20, 40, 60, 80, 100, 120], help='milestones of learning decay')
         parser.add_argument('--weight_decay', type=float, default=1e-4, help='weight decay rate')
-        parser.add_argument('--momentum', type=float, default=0.9, help='momentum for sgd optimizer')
         parser.add_argument('--warmup_epochs', type=int, default=5, help='number of warmup epochs')
         parser.add_argument('--max_epochs', type=int, default=150, help='max number of epochs to train')
         parser.add_argument('--save_folder', default='weights', help='directory to save checkpoints')
-        parser.add_argument('--loss', type=str, default='asymmetric', help='loss function')
         parser.add_argument('--patience', type=int, default=20, help='patience of early stopping')
         parser.add_argument('--min_delta', type=float, default=1, help='min delta of early stopping')
-        parser.add_argument('--threshold', type=float, default=90, help='val mAP threshold of early stopping')
+        parser.add_argument('--stop_threshold', type=float, default=90, help='val mAP threshold of early stopping')
 
         return parser

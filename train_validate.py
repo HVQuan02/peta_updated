@@ -123,7 +123,7 @@ def main():
   else:
      exit('Unknown optimization lr')
 
-  early_stopper = EarlyStopper(patience=args.patience, min_delta=args.min_delta, threshold=args.threshold)
+  early_stopper = EarlyStopper(patience=args.patience, min_delta=args.min_delta, threshold=args.stop_threshold)
 
   if args.resume:
       data = torch.load(args.resume)
