@@ -7,7 +7,6 @@ from torch.utils.data import DataLoader
 from src.utils.evaluation import AP_partial
 from src.loss_functions.asymmetric_loss import AsymmetricLossOptimized
 from flash.core.optimizers import LinearWarmupCosineAnnealingLR
-from torch.optim.swa_utils import AveragedModel, get_ema_multi_avg_fn, update_bn
 from datasets import CUFED
 from models.models import MTResnetAggregate
 from options.train_options import TrainOptions
@@ -26,7 +25,7 @@ def validate_one_epoch(model, val_loader, val_dataset, device):
       gidx += shape
   return AP_partial(val_dataset.labels, scores.numpy())[1]
 
-def train_one_epoch(ema_model, model, train_loader, crit, opt, sched, device):
+def train_one_epoch(model, train_loader, crit, opt, sched, device):
   model.train()
   epoch_loss = 0
   for batch in train_loader:
@@ -38,7 +37,6 @@ def train_one_epoch(ema_model, model, train_loader, crit, opt, sched, device):
     loss = crit(logits, label)
     loss.backward()
     opt.step()
-    ema_model.update_parameters(model)
     epoch_loss += loss.item()
     sched.step()
   return epoch_loss / len(train_loader)
@@ -87,7 +85,6 @@ def main():
 
   start_epoch = 0
   model = MTResnetAggregate(args).to(device)
-  ema_model = AveragedModel(model, multi_avg_fn=get_ema_multi_avg_fn(0.999))
 
   if args.loss == 'asymmetric':
     crit = AsymmetricLossOptimized()
@@ -129,7 +126,7 @@ def main():
 
   for epoch in range(start_epoch, args.max_epochs):
     t0 = time.perf_counter()
-    train_loss = train_one_epoch(ema_model, model, train_loader, crit, opt, sched, device)
+    train_loss = train_one_epoch(model, train_loader, crit, opt, sched, device)
     t1 = time.perf_counter()
 
     t2 = time.perf_counter()
@@ -139,34 +136,19 @@ def main():
     epoch_cnt = epoch + 1
     is_early_stopping, is_save_ckpt = early_stopper.early_stop(val_mAP)
 
+    model_config = {
+      'epoch': epoch_cnt,
+      'model': model.state_dict(),
+      'loss': train_loss,
+      'opt_state_dict': opt.state_dict(),
+      'sched_state_dict': sched.state_dict()
+    }
+    
     if is_save_ckpt:
-      torch.save({
-        'epoch': epoch_cnt,
-        'model': model.state_dict(),
-        'loss': train_loss,
-        'opt_state_dict': opt.state_dict(),
-        'sched_state_dict': sched.state_dict()
-      }, os.path.join(args.save_folder, 'PETA-cufed.pt')) 
+      torch.save(model_config, os.path.join(args.save_folder, 'best-PETA-{}.pt'.format(args.dataset))) 
          
     if is_early_stopping or epoch_cnt == args.max_epochs:
-      # Update bn statistics for the ema_model at the end
-      update_bn(train_loader, ema_model)
-
-      # save last model
-      torch.save({
-        'epoch': epoch_cnt,
-        'model': model.state_dict(),
-        'loss': train_loss,
-        'opt_state_dict': opt.state_dict(),
-        'sched_state_dict': sched.state_dict()
-      }, os.path.join(args.save_folder, 'PETA-cufed-last.pt')) 
-
-      # save ema model
-      torch.save({
-        'epoch': epoch_cnt,
-        'model': ema_model.state_dict()
-      }, os.path.join(args.save_folder, 'EMA-PETA-cufed.pt'))
-
+      torch.save(model_config, os.path.join(args.save_folder, 'last-PETA-{}.pt'.format(args.dataset))) 
       print('Stop at epoch {}'.format(epoch_cnt)) 
       break
 

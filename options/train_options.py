@@ -101,7 +101,7 @@ class TrainOptions(BaseOptions):
         parser.add_argument('--img_size', type=int, default=224)
         parser.add_argument('--remove_model_jit', type=int, default=None)
         parser.add_argument('--optimizer', type=str, default='adamw', choices=['sgd', 'adam', 'adamw'])
-        parser.add_argument('--lr_policy', type=str, default='onecycle', choices=['cosine', 'step', 'multi_step', 'onecycle'])
+        parser.add_argument('--lr_policy', type=str, default='cosine', choices=['cosine', 'step', 'multi_step', 'onecycle'])
         parser.add_argument('--lr', type=float, default=2e-4, help='base learning rate')
         parser.add_argument('--weight_decay', type=float, default=1e-4, help='weight decay rate')
         parser.add_argument('--warmup_epochs', type=int, default=5, help='number of warmup epochs')
