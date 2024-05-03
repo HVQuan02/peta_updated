@@ -15,7 +15,7 @@ parser.add_argument('--num_classes', type=int, default=23)
 parser.add_argument('--dataset', default='cufed', choices=['cufed', 'pec', 'holidays'])
 parser.add_argument('--metric', default='map', choices=['map', 'accuracy'])
 parser.add_argument('--dataset_path', type=str, default='/kaggle/input/thesis-cufed/CUFED')
-parser.add_argument('--split_path', type=str, default='/kaggle/working/split_dir')
+parser.add_argument('--split_path', type=str, default='/kaggle/input/full-split')
 parser.add_argument('--dataset_type', type=str, default='ML_CUFED')
 parser.add_argument('--batch_size', type=int, default=32, help='batch size')
 parser.add_argument('--num_workers', type=int, default=4, help='number of workers for data loader')
@@ -33,7 +33,6 @@ parser.add_argument('--backbone', type=str, default='resnet101')
 parser.add_argument('--input_size', type=int, default=224)
 parser.add_argument('--transform_type', type=str, default='squish')
 parser.add_argument('--album_sample', type=str, default='rand_permute')
-parser.add_argument('--path_output', type=str, default='./outputs')
 parser.add_argument('--top_k', type=int, default=3)
 parser.add_argument('--threshold', type=float, default=0.85)
 parser.add_argument('--attention', type=str, default='multihead')
@@ -54,23 +53,29 @@ def load_model(net, path):
 
     return net
 
-def evaluate(model, dataset, loader, scores, out_file, device):
+def evaluate(model, dataset, loader, out_file, device):
+    scores = torch.zeros((len(dataset), len(dataset.event_labels)), dtype=torch.float32)
     gidx = 0
     model.eval()
     with torch.no_grad():
         for batch in loader:
             feats, _ = batch
             feats = feats.to(device)
-            out_data = model(feats)
-            shape = out_data.shape[0]
+            logits, importance = model(feats)
+            shape = logits.shape[0]
             if out_file:
                 for j in range(shape):
                     video_name = dataset.videos[gidx + j]
                     out_file.write("{} ".format(video_name))
-                    out_file.write(' '.join([str(x.item()) for x in out_data[j, :]]))
+                    out_file.write(' '.join([str(x.item()) for x in logits[j, :]]))
                     out_file.write('\n')
-            scores[gidx:gidx+shape, :] = out_data.cpu()
+            scores[gidx:gidx+shape, :] = logits.cpu()
             gidx += shape
+    
+    # Change tensors to 1d-arrays
+    scores = scores.numpy()
+    return scores
+      
 
 def main():
   if args.dataset == 'cufed':
@@ -95,16 +100,11 @@ def main():
     net = AveragedModel(net, multi_avg_fn=get_ema_multi_avg_fn(0.999))
   model = load_model(net, args.model_path)
 
-  num_test = len(dataset)
-  scores = torch.zeros((num_test, len(dataset.event_labels)), dtype=torch.float32)
 
   t0 = time.perf_counter()
-  evaluate(model, dataset, eval_loader, scores, out_file, device)
+  scores = evaluate(model, dataset, eval_loader, out_file, device)
   t1 = time.perf_counter()
   
-  # # Change tensors to 1d-arrays
-  scores = scores.numpy()
-
   if args.save_scores:
     out_file.close()
 
