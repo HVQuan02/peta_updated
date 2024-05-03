@@ -72,16 +72,9 @@ def main():
 
   if args.dataset == 'cufed':
     train_dataset = CUFED(root_dir=args.dataset_path, split_dir=args.split_path, is_train=True, img_size=args.img_size, album_clip_length=args.album_clip_length)
-    val_dataset = CUFED(root_dir=args.dataset_path, split_dir=args.split_path, is_train=False, is_val=True, img_size=args.img_size, album_clip_length=args.album_clip_length)
+    val_dataset = CUFED(root_dir=args.dataset_path, split_dir=args.split_path, is_train=False, img_size=args.img_size, album_clip_length=args.album_clip_length)
   else:
     exit("Unknown dataset!")
-
-  if args.loss == 'asymmetric':
-    crit = AsymmetricLossOptimized()
-  elif args.loss == 'bce':
-    crit = nn.BCEWithLogitsLoss()
-  else:
-    exit("Unknown loss function!")
      
   device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
   train_loader = DataLoader(train_dataset, batch_size=args.train_batch_size, num_workers=args.num_workers, shuffle=False, pin_memory=True)
@@ -93,9 +86,15 @@ def main():
     print("num samples of val = {}".format(len(val_dataset)))
 
   start_epoch = 0
-  # model = create_model(args).to(device) # model original peta
-  model = MTResnetAggregate(args).to(device) # model k18
+  model = MTResnetAggregate(args).to(device)
   ema_model = AveragedModel(model, multi_avg_fn=get_ema_multi_avg_fn(0.999))
+
+  if args.loss == 'asymmetric':
+    crit = AsymmetricLossOptimized()
+  elif args.loss == 'bce':
+    crit = nn.BCEWithLogitsLoss()
+  else:
+    exit("Unknown loss function!")
 
   if args.optimizer == 'adam':
     opt = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
