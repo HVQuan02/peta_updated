@@ -8,20 +8,56 @@ from datasets import CUFED
 from models.models import MTResnetAggregate
 from options.test_options import TestOptions
 
+def cov(m):
+    # m = m.type(torch.double)  # uncomment this line if desired
+    fact = 1.0 / (m.shape[-1] - 1)  # 1 / N
+    m -= torch.mean(m, dim=(1, 2), keepdim=True)
+    mt = torch.transpose(m, 1, 2)  # if complex: mt = m.t().conj()
+    return fact * m.matmul(mt).squeeze()
+
+def rankmin(x: torch.Tensor) -> torch.Tensor:
+    tmp = x.argsort()
+    ranks = torch.zeros_like(tmp)
+    ranks[tmp] = torch.arange(len(x))
+    return ranks
+
+def compute_rank_correlation(x, y):
+    x, y = rankmin(x), rankmin(y)
+    return corrcoef(x, y)
+
+def corrcoef(x, y):
+    batch_size = x.shape[0]
+    x = torch.stack((x, y), 1)
+    # calculate covariance matrix of rows
+    c = cov(x)
+    # normalize covariance matrix
+    d = torch.diagonal(c, dim1=1, dim2=2)
+    stddev = torch.pow(d, 0.5)
+    stddev = stddev.repeat(1, 2).view(batch_size, 2, 2)
+    c = c.div(stddev)
+    c = c.div(torch.transpose(stddev, 1, 2))
+    return c[:, 1, 0]
+
 def evaluate(model, test_loader, test_dataset, device):
   model.eval()
   scores = torch.zeros((len(test_dataset), len(test_dataset.event_labels)), dtype=torch.float32)
+  importance_labels = []
   gidx = 0
   with torch.no_grad():
     for batch in test_loader:
-      feats, _ = batch
+      feats, labels, importance_scores = batch
       feats = feats.to(device)
       logits, importance, attention = model(feats)
       shape = logits.shape[0]
       scores[gidx:gidx+shape, :] = logits.cpu()
       gidx += shape
+      importance_labels.append(importance_scores)
   map = AP_partial(test_dataset.labels, scores.numpy())[1]
-  spearman = 123
+  N = importance.shape[0]
+  importance = importance.view(N // 32, 32, -1)
+  importance_labels = torch.cat(importance_labels)
+  spearman = compute_rank_correlation(importance, importance_labels)
+  print('yoyo: ', spearman)
   return map, spearman
 
 def main():

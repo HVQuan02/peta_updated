@@ -17,9 +17,9 @@ def validate_one_epoch(model, val_loader, val_dataset, device):
   gidx = 0
   with torch.no_grad():
     for batch in val_loader:
-      feats, _ = batch
+      feats, _, _ = batch
       feats = feats.to(device)
-      logits, importance, attention = model(feats)
+      logits, _, _ = model(feats)
       shape = logits.shape[0]
       scores[gidx:gidx+shape, :] = logits.cpu()
       gidx += shape
@@ -29,12 +29,12 @@ def train_one_epoch(model, train_loader, crit, opt, sched, device):
   model.train()
   epoch_loss = 0
   for batch in train_loader:
-    feats, label = batch
+    feats, labels, _ = batch
     feats = feats.to(device)
-    label = label.to(device)
+    labels = labels.to(device)
     opt.zero_grad()
-    logits, importance, attention = model(feats)
-    loss = crit(logits, label)
+    logits, _, _ = model(feats)
+    loss = crit(logits, labels)
     loss.backward()
     opt.step()
     epoch_loss += loss.item()

@@ -14,7 +14,7 @@ def get_album(album_path, album_importance, album_clip_length, img_size):
     n_files = len(files)
     idx_fetch = np.linspace(0, n_files-1, album_clip_length, dtype=int)
     tensor_batch = torch.zeros(len(idx_fetch), img_size, img_size, 3)
-    importance_scores = torch.zeros(len(idx_fetch), 1)
+    importance_scores = torch.zeros(len(idx_fetch))
     for i, id in enumerate(idx_fetch):
         img_name = album_name + '/' + os.path.splitext(files[id])[0]
         im = Image.open(os.path.join(album_path, files[id]))
