@@ -19,7 +19,7 @@ def validate_one_epoch(model, val_loader, val_dataset, device):
     for batch in val_loader:
       feats, _ = batch
       feats = feats.to(device)
-      logits, importance = model(feats)
+      logits, importance, attention = model(feats)
       shape = logits.shape[0]
       scores[gidx:gidx+shape, :] = logits.cpu()
       gidx += shape
@@ -33,7 +33,7 @@ def train_one_epoch(model, train_loader, crit, opt, sched, device):
     feats = feats.to(device)
     label = label.to(device)
     opt.zero_grad()
-    logits, importance = model(feats)
+    logits, importance, attention = model(feats)
     loss = crit(logits, label)
     loss.backward()
     opt.step()
@@ -138,7 +138,7 @@ def main():
 
     model_config = {
       'epoch': epoch_cnt,
-      'model': model.state_dict(),
+      'model_state_dict': model.state_dict(),
       'loss': train_loss,
       'opt_state_dict': opt.state_dict(),
       'sched_state_dict': sched.state_dict()

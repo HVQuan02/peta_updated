@@ -18,7 +18,6 @@ from models.attention.AFT import AFT_FULL
 
 
 class fTResNet(nn.Module):
-
     def __init__(self, encoder_name='tresnet_m', num_classes=23, aggregate=None, args=None):
         super(fTResNet, self).__init__()
 
@@ -79,7 +78,7 @@ class fTResNet(nn.Module):
         #     return logits
         # else:
         #     return (logits, attn_mat)
-        return logits, importance
+        return logits, importance, self.attention
 
 
 # class fResNet(ResNet):
