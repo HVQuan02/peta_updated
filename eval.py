@@ -12,6 +12,7 @@ def evaluate(model, test_loader, test_dataset, device):
   scores = torch.zeros((len(test_dataset), len(test_dataset.event_labels)), dtype=torch.float32)
   importance_labels = []
   gidx = 0
+    
   with torch.no_grad():
     for batch in test_loader:
       feats, labels, importance_scores = batch
@@ -21,10 +22,13 @@ def evaluate(model, test_loader, test_dataset, device):
       scores[gidx:gidx+shape, :] = logits.cpu()
       gidx += shape
       importance_labels.append(importance_scores)
+    
+  importance = importance.view(importance.shape[0] // 32, 32, -1).squeeze(-1).to(device)
+  importance_labels = torch.cat(importance_labels).to(device)
+    
   map = AP_partial(test_dataset.labels, scores.numpy())[1]
-  importance = importance.view(importance.shape[0] // 32, 32, -1)
-  importance_labels = torch.cat(importance_labels)
   spearman = spearman_correlation(importance, importance_labels)
+    
   return map, spearman
 
 def main():

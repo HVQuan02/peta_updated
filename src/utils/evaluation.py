@@ -73,10 +73,11 @@ def AP_partial(targs, preds):
     return ap, map, map_macro, cnt_class_with_no_labels, cnt_class_with_no_neg, cnt_class_with_no_pos
 
 def rankmin(x):
-  ranks = torch.zeros_like(x)
+  rank = torch.arange(x.shape[1]).type(x.dtype).to(x.device)
+  ranks = torch.zeros_like(x).to(x.device)
   for i in range(x.shape[0]):
     tmp = x[i].argsort()
-    ranks[i, tmp] = torch.arange(len(x[i]))
+    ranks[i, tmp] = rank
   return ranks
 
 def spearman_correlation(x, y):
