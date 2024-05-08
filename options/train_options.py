@@ -93,8 +93,8 @@ class TrainOptions(BaseOptions):
         parser.add_argument('--dataset_path', type=str, default='/kaggle/input/thesis-cufed/CUFED')
         parser.add_argument('--split_path', type=str, default='/kaggle/input/cufed-full-split')
         parser.add_argument('--dataset_type', type=str, default='ML_CUFED')
-        parser.add_argument('--train_batch_size', type=int, default=14, help='train batch size') # change
-        parser.add_argument('--val_batch_size', type=int, default=32, help='validate batch size') # change
+        parser.add_argument('--train_batch_size', type=int, default=14, help='train batch size')
+        parser.add_argument('--val_batch_size', type=int, default=32, help='validate batch size')
         parser.add_argument('--num_workers', type=int, default=4, help='number of workers for data loader')
         parser.add_argument('-v', '--verbose', action='store_true', help='show details')
         parser.add_argument('--img_size', type=int, default=224)
