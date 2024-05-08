@@ -79,11 +79,11 @@ def rankmin(x):
     ranks[i, tmp] = torch.arange(len(x[i]))
   return ranks
 
-def spearman_correlation(x: torch.Tensor, y: torch.Tensor):
+def spearman_correlation(x, y):
     x_rank = rankmin(x)
     y_rank = rankmin(y)
     
     n = x.size(1)
     upper = 6 * torch.sum((x_rank - y_rank).pow(2), dim=1)
     down = n * (n ** 2 - 1.0)
-    return 1.0 - (upper / down)
+    return torch.mean(1.0 - (upper / down)).item()
