@@ -134,8 +134,6 @@ def main():
     t3 = time.perf_counter()
 
     epoch_cnt = epoch + 1
-    is_early_stopping, is_save_ckpt = early_stopper.early_stop(val_mAP)
-
     model_config = {
       'epoch': epoch_cnt,
       'model_state_dict': model.state_dict(),
@@ -143,13 +141,16 @@ def main():
       'opt_state_dict': opt.state_dict(),
       'sched_state_dict': sched.state_dict()
     }
-    
+
+    torch.save(model_config, os.path.join(args.save_folder, 'last-PETA-{}.pt'.format(args.dataset)))
+
+    is_early_stopping, is_save_ckpt = early_stopper.early_stop(val_mAP)
+
     if is_save_ckpt:
-      torch.save(model_config, os.path.join(args.save_folder, 'best-PETA-{}.pt'.format(args.dataset))) 
+      torch.save(model_config, os.path.join(args.save_folder, 'best-PETA-{}.pt'.format(args.dataset)))
          
-    if is_early_stopping or epoch_cnt == args.max_epochs:
-      torch.save(model_config, os.path.join(args.save_folder, 'last-PETA-{}.pt'.format(args.dataset))) 
-      print('Stop at epoch {}'.format(epoch_cnt)) 
+    if is_early_stopping:
+      print('Early stop at epoch {}'.format(epoch_cnt)) 
       break
 
     if args.verbose:
