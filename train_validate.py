@@ -118,7 +118,7 @@ def main():
   if args.resume:
       data = torch.load(args.resume)
       start_epoch = data['epoch']
-      model.load_state_dict(data['model'], strict=True)
+      model.load_state_dict(data['model_state_dict'], strict=True)
       opt.load_state_dict(data['opt_state_dict'])
       sched.load_state_dict(data['sched_state_dict'])
       if args.verbose:

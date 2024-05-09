@@ -50,7 +50,7 @@ def main():
     exit("Unknown dataset!")
      
   device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-  test_loader = DataLoader(test_dataset, batch_size=args.val_batch_size, num_workers=args.num_workers, shuffle=False)
+  test_loader = DataLoader(test_dataset, batch_size=args.test_batch_size, num_workers=args.num_workers, shuffle=False)
 
   if args.verbose:
     print("running on {}".format(device))
