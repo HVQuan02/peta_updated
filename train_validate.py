@@ -38,7 +38,7 @@ def train_one_epoch(model, train_loader, crit, opt, sched, device):
     loss.backward()
     opt.step()
     epoch_loss += loss.item()
-    sched.step()
+    sched.step() # change
   return epoch_loss / len(train_loader)
 
 class EarlyStopper:

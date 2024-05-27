@@ -87,7 +87,7 @@ class TrainOptions(BaseOptions):
         parser.add_argument('--infer', type=int, default=0)
         parser.add_argument('--attention', type=str,
                             default='multihead')
-        # my peta
+        # PETA
         parser.add_argument('--model_name', type=str, default='mtresnetaggregate')
         parser.add_argument('--dataset', default='cufed', choices=['cufed', 'pec', 'holidays'])
         parser.add_argument('--dataset_path', type=str, default='/kaggle/input/thesis-cufed/CUFED')
