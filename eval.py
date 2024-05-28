@@ -10,33 +10,28 @@ from options.test_options import TestOptions
 def evaluate(model, test_loader, test_dataset, device):
   model.eval()
   scores = torch.zeros((len(test_dataset), len(test_dataset.event_labels)), dtype=torch.float32)
-  importances = []
   attentions = []
   importance_labels = []
   gidx = 0
     
   with torch.no_grad():
     for batch in test_loader:
-      feats, labels, importance_scores = batch
+      feats, _, importance_scores = batch
       feats = feats.to(device)
-      logits, importance, attention = model(feats)
+      logits, attention = model(feats)
       shape = logits.shape[0]
       scores[gidx:gidx+shape, :] = logits.cpu()
       gidx += shape
-      importances.append(importance)
       attentions.append(attention)
       importance_labels.append(importance_scores)
         
-  importance_tensor = torch.cat(importances)
-  importance_tensor = importance_tensor.view(importance_tensor.shape[0] // 32, 32, -1).squeeze(-1).to(device)
   attention_tensor = torch.cat(attentions).to(device)
   importance_labels = torch.cat(importance_labels).to(device)
     
   map = AP_partial(test_dataset.labels, scores.numpy())[1]
-  spearman1 = spearman_correlation(importance_tensor, importance_labels)
-  spearman2 = spearman_correlation(attention_tensor[:, 0, 1:], importance_labels)
+  spearman = spearman_correlation(attention_tensor[:, 0, 1:], importance_labels)
 
-  return map, spearman1, spearman2
+  return map, spearman
 
 def main():
   args = TestOptions().parse()
@@ -63,11 +58,11 @@ def main():
   print("done")
 
   t0 = time.perf_counter()
-  map, spearman1, spearman2 = evaluate(model, test_loader, test_dataset, device)
+  map, spearman = evaluate(model, test_loader, test_dataset, device)
   t1 = time.perf_counter()
 
   if args.verbose:
-    print("mAP={} spearman1={} spearman2={} dt={:.2f}sec".format(map, spearman1, spearman2, t1 - t0)) 
+    print("mAP={} spearman={} dt={:.2f}sec".format(map, spearman, t1 - t0)) 
 
 if __name__ == '__main__':
   main()

@@ -27,12 +27,12 @@ class fTResNet(nn.Module):
             self.feature_extraction.num_features, num_classes)
         self.global_pool = FastAdaptiveAvgPool2d(flatten=True)
 
-        self.fc1 = nn.Sequential(
-            nn.Linear(self.feature_extraction.num_features, 500),
-            nn.ReLU(inplace=True),
-            nn.Dropout2d(p=0.5),
-            nn.Linear(500, 1),
-        )
+        # self.fc1 = nn.Sequential(
+        #     nn.Linear(self.feature_extraction.num_features, 500),
+        #     nn.ReLU(inplace=True),
+        #     nn.Dropout2d(p=0.5),
+        #     nn.Linear(500, 1),
+        # )
 
         if args.use_transformer:
             if args.attention == 'aft':
@@ -60,7 +60,7 @@ class fTResNet(nn.Module):
         x = self.feature_extraction.forward_features(x)
         # x = self.body(x)
         self.embeddings = self.global_pool(x)
-        importance = self.fc1(self.embeddings)
+        # importance = self.fc1(self.embeddings)
         if self.aggregate:
             if isinstance(self.aggregate, TAggregate):
                 self.embeddings, self.attention = self.aggregate(
@@ -78,7 +78,8 @@ class fTResNet(nn.Module):
         #     return logits
         # else:
         #     return (logits, attn_mat)
-        return logits, importance, self.attention
+        # return logits, importance, self.attention
+        return logits, self.attention
 
 
 # class fResNet(ResNet):
