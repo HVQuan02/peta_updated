@@ -21,10 +21,8 @@ class fTResNet(nn.Module):
     def __init__(self, encoder_name='tresnet_m', num_classes=23, aggregate=None, args=None):
         super(fTResNet, self).__init__()
 
-        self.feature_extraction = timm.create_model(
-            model_name=encoder_name, pretrained=True)
-        self.head = nn.Linear(
-            self.feature_extraction.num_features, num_classes)
+        self.feature_extraction = timm.create_model(model_name=encoder_name, pretrained=True).eval()
+        self.head = nn.Linear(self.feature_extraction.num_features, num_classes)
         self.global_pool = FastAdaptiveAvgPool2d(flatten=True)
 
         # self.fc1 = nn.Sequential(

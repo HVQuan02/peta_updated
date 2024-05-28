@@ -4,8 +4,9 @@ import numpy as np
 import torch
 from PIL import Image
 from torch.utils.data import Dataset
+import timm
 
-def get_album(album_path, album_importance, album_clip_length, img_size):
+def get_album(album_path, album_importance, album_clip_length, img_size, transforms):
     img_score_dict = {}
     for _, image, score in album_importance:
         img_score_dict[image] = score
@@ -18,9 +19,12 @@ def get_album(album_path, album_importance, album_clip_length, img_size):
     for i, id in enumerate(idx_fetch):
         img_name = album_name + '/' + os.path.splitext(files[id])[0]
         im = Image.open(os.path.join(album_path, files[id]))
-        im_resize = im.resize((img_size, img_size))
-        np_img = np.array(im_resize, dtype=np.uint8)
-        tensor_batch[i] = torch.from_numpy(np_img).float() / 255.0
+        if transforms is not None:
+            tensor_batch[i] = transforms(im)
+        else:
+            im_resize = im.resize((img_size, img_size))
+            np_img = np.array(im_resize, dtype=np.uint8)
+            tensor_batch[i] = torch.from_numpy(np_img).float() / 255.0
         importance_scores[i] = img_score_dict[img_name]
     tensor_batch = tensor_batch.permute(0, 3, 1, 2)   # HWC to CHW
     img_score_dict.clear() # save memory
@@ -34,11 +38,18 @@ class CUFED(Dataset):
                     'Protest', 'ReligiousActivity', 'Show', 'Sports', 'ThemePark',
                     'UrbanTrip', 'Wedding', 'Zoo']
 
-    def __init__(self, root_dir, split_dir, is_train, img_size=224, album_clip_length=32):
+    def __init__(self, root_dir, split_dir, is_train, img_size=224, album_clip_length=32, ext_model=None):
         self.img_size = img_size
         self.album_clip_length = album_clip_length
         self.root_dir = root_dir
         self.phase = 'train' if is_train else 'test'
+        if ext_model is not None:
+            # get model specific transforms (normalization, resize)
+            data_config = timm.data.resolve_model_data_config(ext_model)
+            transforms = timm.data.create_transform(**data_config, is_training=False)
+            self.transforms = transforms
+        else:
+            self.transforms = None
 
         train_split_path = os.path.join(split_dir, 'train_split.txt')
         val_split_path = os.path.join(split_dir, 'val_split.txt')
@@ -81,5 +92,5 @@ class CUFED(Dataset):
         dataset_path = os.path.join(self.root_dir, 'images')
         album_path = os.path.join(dataset_path, self.videos[idx])
         album_importance = self.importance[self.videos[idx]]
-        album_tensor, importance_scores = get_album(album_path, album_importance, self.album_clip_length, self.img_size)
+        album_tensor, importance_scores = get_album(album_path, album_importance, self.album_clip_length, self.img_size, self.transforms)
         return album_tensor, self.labels[idx], importance_scores

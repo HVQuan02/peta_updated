@@ -105,7 +105,7 @@ class TrainOptions(BaseOptions):
         parser.add_argument('--weight_decay', type=float, default=1e-4, help='weight decay rate')
         parser.add_argument('--warmup_epochs', type=int, default=5, help='number of warmup epochs')
         parser.add_argument('--max_epochs', type=int, default=150, help='max number of epochs to train')
-        parser.add_argument('--save_folder', default='weights', help='directory to save checkpoints')
+        parser.add_argument('--save_folder', default='/kaggle/working/PETA_Thesis_With_K18/weights', help='directory to save checkpoints')
         parser.add_argument('--patience', type=int, default=20, help='patience of early stopping')
         parser.add_argument('--min_delta', type=float, default=1, help='min delta of early stopping')
         parser.add_argument('--stop_threshold', type=float, default=90, help='val mAP threshold of early stopping')
