@@ -14,19 +14,21 @@ def get_album(album_path, album_importance, album_clip_length, img_size, transfo
     files = os.listdir(album_path)
     n_files = len(files)
     idx_fetch = np.linspace(0, n_files-1, album_clip_length, dtype=int)
-    tensor_batch = torch.zeros(len(idx_fetch), img_size, img_size, 3)
+    tensor_batch = []
     importance_scores = torch.zeros(len(idx_fetch))
     for i, id in enumerate(idx_fetch):
         img_name = album_name + '/' + os.path.splitext(files[id])[0]
         im = Image.open(os.path.join(album_path, files[id]))
         if transforms is not None:
-            tensor_batch[i] = transforms(im)
+            tensor_batch.append(transforms(im))
         else:
             im_resize = im.resize((img_size, img_size))
             np_img = np.array(im_resize, dtype=np.uint8)
-            tensor_batch[i] = torch.from_numpy(np_img).float() / 255.0
+            tensor_batch.append(torch.from_numpy(np_img).float() / 255.0)
         importance_scores[i] = img_score_dict[img_name]
-    tensor_batch = tensor_batch.permute(0, 3, 1, 2)   # HWC to CHW
+    tensor_batch = torch.stack(tensor_batch)
+    if transforms is None:
+        tensor_batch = tensor_batch.permute(0, 3, 1, 2)   # HWC to CHW
     img_score_dict.clear() # save memory
     return tensor_batch, importance_scores
 
