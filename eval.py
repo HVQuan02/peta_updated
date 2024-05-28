@@ -35,28 +35,29 @@ def evaluate(model, test_loader, test_dataset, device):
 
 def main():
   args = TestOptions().parse()
+
   np.random.seed(args.seed)
   torch.manual_seed(args.seed)
   torch.cuda.manual_seed(args.seed)
 
+  device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
+  print("create model ...")
+  model = MTResnetAggregate(args).to(device)
+  state = torch.load(args.model_path)
+    
   if args.dataset == 'cufed':
-    test_dataset = CUFED(root_dir=args.dataset_path, split_dir=args.split_path, is_train=False, img_size=args.img_size, album_clip_length=args.album_clip_length)
+    test_dataset = CUFED(root_dir=args.dataset_path, split_dir=args.split_path, is_train=False, img_size=args.img_size, album_clip_length=args.album_clip_length, ext_model=model.feature_extraction)
   else:
     exit("Unknown dataset!")
      
-  device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-  test_loader = DataLoader(test_dataset, batch_size=args.test_batch_size, num_workers=args.num_workers, shuffle=False)
+  test_loader = DataLoader(test_dataset, batch_size=args.test_batch_size, num_workers=args.num_workers)
 
   if args.verbose:
     print("running on {}".format(device))
     print("num samples of test = {}".format(len(test_dataset)))
 
-  print("create model ...")
-  model = MTResnetAggregate(args).to(device)
-  state = torch.load(args.model_path)
   model.load_state_dict(state['model_state_dict'])
-  print("done")
-
   t0 = time.perf_counter()
   map, spearman = evaluate(model, test_loader, test_dataset, device)
   t1 = time.perf_counter()
