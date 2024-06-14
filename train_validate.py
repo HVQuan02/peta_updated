@@ -75,8 +75,8 @@ def main():
   model = MTResnetAggregate(args).to(device)
 
   if args.dataset == 'cufed':
-    train_dataset = CUFED(root_dir=args.dataset_path, split_dir=args.split_path, is_train=True, img_size=args.img_size, album_clip_length=args.album_clip_length, ext_model=model.feature_extraction)
-    val_dataset = CUFED(root_dir=args.dataset_path, split_dir=args.split_path, is_train=False, img_size=args.img_size, album_clip_length=args.album_clip_length, ext_model=model.feature_extraction)
+    train_dataset = CUFED(root_dir=args.dataset_path, split_dir=args.split_path, img_size=args.img_size, album_clip_length=args.album_clip_length, ext_model=model.feature_extraction)
+    val_dataset = CUFED(root_dir=args.dataset_path, split_dir=args.split_path, is_val=True, img_size=args.img_size, album_clip_length=args.album_clip_length, ext_model=model.feature_extraction)
   else:
     exit("Unknown dataset!")
      

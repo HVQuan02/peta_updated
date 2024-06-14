@@ -40,11 +40,19 @@ class CUFED(Dataset):
                     'Protest', 'ReligiousActivity', 'Show', 'Sports', 'ThemePark',
                     'UrbanTrip', 'Wedding', 'Zoo']
 
-    def __init__(self, root_dir, split_dir, is_train, img_size=224, album_clip_length=32, ext_model=None):
+    def __init__(self, root_dir, split_dir, is_train=True, is_val=False, img_size=224, album_clip_length=32, ext_model=None):
         self.img_size = img_size
         self.album_clip_length = album_clip_length
         self.root_dir = root_dir
-        self.phase = 'train' if is_train else 'test'
+
+        if is_train:
+            if is_val:
+                self.phase = 'val'
+            else:
+                self.phase = 'train' 
+        else:
+            self.phase = 'test'
+
         if ext_model is not None:
             # get model specific transforms (normalization, resize)
             data_config = timm.data.resolve_model_data_config(ext_model)
@@ -53,13 +61,19 @@ class CUFED(Dataset):
         else:
             self.transforms = None
 
-        train_split_path = os.path.join(split_dir, 'train_split.txt')
-        val_split_path = os.path.join(split_dir, 'val_split.txt')
-
         if self.phase == 'train':
-            split_path = train_split_path
+            split_path = os.path.join(split_dir, 'train_split.txt')
+        elif self.phase == 'val':
+            split_path = os.path.join(split_dir, 'val_split.txt')
         else:
-            split_path = val_split_path
+            split_path = os.path.join(split_dir, 'test_split.txt')
+
+        with open(split_path, 'r') as f:
+            album_names = f.readlines()
+            vidname_list = [name.strip() for name in album_names]
+
+        if '33_65073328@N00' in vidname_list:
+            vidname_list.remove('33_65073328@N00') # remove weird album
 
         label_path = os.path.join(root_dir, "event_type.json")
         with open(label_path, 'r') as f:
@@ -68,13 +82,6 @@ class CUFED(Dataset):
         importance_path = os.path.join(root_dir, "image_importance.json")
         with open(importance_path, 'r') as f:
             album_importance = json.load(f)
-
-        with open(split_path, 'r') as f:
-            album_names = f.readlines()
-            vidname_list = [name.strip() for name in album_names]
-
-        if '33_65073328@N00' in vidname_list:
-            vidname_list.remove('33_65073328@N00') # remove weird album
 
         labels_np = np.zeros((len(vidname_list), len(self.event_labels)), dtype=np.float32)
 
