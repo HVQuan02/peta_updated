@@ -14,19 +14,19 @@ from torch.optim.swa_utils import AveragedModel, get_ema_multi_avg_fn, update_bn
 
 args = TrainOptions().parse()
 
-def validate_one_epoch(model, test_loader, test_dataset, device):
+def validate_one_epoch(model, val_loader, val_dataset, device):
   model.eval()
-  scores = torch.zeros((len(test_dataset), len(test_dataset.event_labels)), dtype=torch.float32)
+  scores = torch.zeros((len(val_dataset), len(val_dataset.event_labels)), dtype=torch.float32)
   gidx = 0
   with torch.no_grad():
-    for batch in test_loader:
+    for batch in val_loader:
       feats, _, _ = batch
       feats = feats.to(device)
       logits, _ = model(feats)
       shape = logits.shape[0]
       scores[gidx:gidx+shape, :] = logits.cpu()
       gidx += shape
-  return AP_partial(test_dataset.labels, scores.numpy())[1]
+  return AP_partial(val_dataset.labels, scores.numpy())[1]
 
 def train_one_epoch(ema_model, model, train_loader, crit, opt, sched, device):
   model.train()
@@ -83,17 +83,17 @@ def main():
 
   if args.dataset == 'cufed':
     train_dataset = CUFED(root_dir=args.dataset_path, split_dir=args.split_path, img_size=args.img_size, album_clip_length=args.album_clip_length, ext_model=model.feature_extraction)
-    test_dataset = CUFED(root_dir=args.dataset_path, split_dir=args.split_path, is_train=False, img_size=args.img_size, album_clip_length=args.album_clip_length, ext_model=model.feature_extraction)
+    val_dataset = CUFED(root_dir=args.dataset_path, split_dir=args.split_path, is_train=False, img_size=args.img_size, album_clip_length=args.album_clip_length, ext_model=model.feature_extraction)
   else:
     exit("Unknown dataset!")
      
   train_loader = DataLoader(train_dataset, batch_size=args.train_batch_size, num_workers=args.num_workers)
-  test_loader = DataLoader(test_dataset, batch_size=args.val_batch_size, num_workers=args.num_workers)
+  val_loader = DataLoader(val_dataset, batch_size=args.val_batch_size, num_workers=args.num_workers)
 
   if args.verbose:
     print("running on {}".format(device))
     print("train_set={}".format(len(train_dataset)))
-    print("test_set={}".format(len(test_dataset)))
+    print("test_set={}".format(len(val_dataset)))
 
   if args.loss == 'asymmetric':
     crit = AsymmetricLossOptimized()
@@ -139,7 +139,7 @@ def main():
     t1 = time.perf_counter()
 
     t2 = time.perf_counter()
-    val_mAP = validate_one_epoch(model, test_loader, test_dataset, device)
+    val_mAP = validate_one_epoch(model, val_loader, val_dataset, device)
     t3 = time.perf_counter()
 
     epoch_cnt = epoch + 1

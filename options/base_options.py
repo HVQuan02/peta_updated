@@ -11,7 +11,6 @@ class BaseOptions():
         parser.add_argument('--scaled_height', type=int, default=384, help='input height of the model')
         parser.add_argument('--name', type=str, default='experiment_name', help='name of the experiment')
         parser.add_argument('--num_classes', type=int, default=23, help='number of labels')
-        parser.add_argument('--backbone', type=str, default='resnet34', help='choose the backbone for semantic segmentation')
         parser.add_argument('--pretrained', type=str, help='pretrained model path (.ckpt or .pth)')
         parser.add_argument('--num_threads', default=8, type=int, help='# threads for loading data')
         parser.add_argument('--seed', type=int, default=2024, help='seed for random generators')
