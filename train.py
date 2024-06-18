@@ -26,7 +26,7 @@ def validate_one_epoch(model, val_loader, val_dataset, device):
       shape = logits.shape[0]
       scores[gidx:gidx+shape, :] = logits.cpu()
       gidx += shape
-  return AP_partial(val_dataset.labels, scores.numpy())[1]
+  return AP_partial(val_dataset.labels, scores.numpy())[2]
 
 def train_one_epoch(ema_model, model, train_loader, crit, opt, sched, device):
   model.train()
