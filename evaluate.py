@@ -73,7 +73,7 @@ def main():
   t1 = time.perf_counter()
 
   if args.verbose:
-    print("map_micro={} map_macro={} accuracy={} spearman={} dt={:.2f}sec".format(map_micro, map_macro, acc, spearman, t1 - t0))
+    print("map_micro={} map_macro={} accuracy={} spearman={} dt={:.2f}sec".format(map_micro, map_macro, acc * 100, spearman, t1 - t0))
     print(cr)
     showCM(cms)
 

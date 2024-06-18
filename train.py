@@ -158,7 +158,7 @@ def main():
     if is_save_ckpt:
       torch.save(model_config, os.path.join(args.save_dir, 'best-updated-peta-{}.pt'.format(args.dataset)))
     
-    if is_early_stopping or epoch_cnt == args.max_epochs:
+    if is_early_stopping or epoch_cnt == args.max_epoch:
       # Update bn statistics for the ema_model at the end
       update_bn(train_loader, ema_model)
 

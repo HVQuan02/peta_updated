@@ -40,7 +40,7 @@ class BaseOptions():
                             default='../CUFED_split/event_type.json')
         parser.add_argument('--image_importance_pth', type=str,
                             default='../CUFED_split/image_importance.json')
-        parser.add_argument('--threshold', type=float, default=0.85)
+        parser.add_argument('--threshold', type=float, default=0.8)
         parser.add_argument('--ckpt_path', type=str, default=None)
 
         # accelerator
