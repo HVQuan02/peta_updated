@@ -9,5 +9,5 @@ class TrainOptions(BaseOptions):
         parser.add_argument('--dataset_type', type=str, default='ML_CUFED')
         parser.add_argument('--train_batch_size', type=int, default=16, help='train batch size')
         parser.add_argument('--val_batch_size', type=int, default=16, help='validate batch size')
-        parser.add_argument('--backbone', type=str, default='vit_large_patch14_clip_224.openai', help='feature extraction backbone network')
+        parser.add_argument('--backbone', type=str, default='vit_large_patch14_clip_224.openai_ft_in12k', help='feature extraction backbone network')
         return parser
