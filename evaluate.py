@@ -28,26 +28,26 @@ def evaluate(model, test_dataset, test_loader, device):
       attentions.append(attention)
       importance_labels.append(importance_scores)
 
-  m = nn.Softmax(dim=1)
-  preds = m(scores)
-  preds[preds >= args.threshold] = 1
-  preds[preds < args.threshold] = 0
+    m = nn.Softmax(dim=1)
+    preds = m(scores)
+    preds[preds >= args.threshold] = 1
+    preds[preds < args.threshold] = 0
 
-  scores = scores.numpy()
-  preds = preds.numpy()
+    scores = scores.numpy()
+    preds = preds.numpy()
 
-  attention_tensor = torch.cat(attentions).to(device)
-  importance_labels = torch.cat(importance_labels).to(device)
-  
-  acc = accuracy_score(test_dataset.labels, preds)
+    attention_tensor = torch.cat(attentions).to(device)
+    importance_labels = torch.cat(importance_labels).to(device)
+    
+    acc = accuracy_score(test_dataset.labels, preds)
 
-  cms = multilabel_confusion_matrix(test_dataset.labels, preds)
-  cr = classification_report(test_dataset.labels, preds)
+    cms = multilabel_confusion_matrix(test_dataset.labels, preds)
+    cr = classification_report(test_dataset.labels, preds)
 
-  map_micro, map_macro = AP_partial(test_dataset.labels, scores)[1:3]
-  spearman = spearman_correlation(attention_tensor[:, 0, 1:], importance_labels)
+    map_micro, map_macro = AP_partial(test_dataset.labels, scores)[1:3]
+    spearman = spearman_correlation(attention_tensor[:, 0, 1:], importance_labels)
 
-  return map_micro, map_macro, acc, spearman, cms, cr
+    return map_micro, map_macro, acc, spearman, cms, cr
 
 def main():
 
