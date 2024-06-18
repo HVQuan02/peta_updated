@@ -94,20 +94,10 @@ class TestOptions(BaseOptions):
         parser.add_argument('--dataset_path', type=str, default='/kaggle/input/thesis-cufed/CUFED')
         parser.add_argument('--split_path', type=str, default='/kaggle/input/cufed-full-split')
         parser.add_argument('--dataset_type', type=str, default='ML_CUFED')
-        parser.add_argument('--test_batch_size', type=int, default=32, help='validate batch size') # change
+        parser.add_argument('--test_batch_size', type=int, default=32, help='validate batch size')
         parser.add_argument('--num_workers', type=int, default=4, help='number of workers for data loader')
-        parser.add_argument('-v', '--verbose', action='store_true', help='show details')
         parser.add_argument('--img_size', type=int, default=224)
         parser.add_argument('--remove_model_jit', type=int, default=None)
-        parser.add_argument('--optimizer', type=str, default='adamw', choices=['sgd', 'adam', 'adamw'])
-        parser.add_argument('--lr_policy', type=str, default='cosine', choices=['cosine', 'step', 'multi_step', 'onecycle'])
-        parser.add_argument('--lr', type=float, default=2e-4, help='base learning rate')
-        parser.add_argument('--weight_decay', type=float, default=1e-4, help='weight decay rate')
-        parser.add_argument('--warmup_epochs', type=int, default=5, help='number of warmup epochs')
-        parser.add_argument('--max_epochs', type=int, default=150, help='max number of epochs to train')
-        parser.add_argument('--save_folder', default='weights', help='directory to save checkpoints')
-        parser.add_argument('--patience', type=int, default=20, help='patience of early stopping')
-        parser.add_argument('--min_delta', type=float, default=1, help='min delta of early stopping')
-        parser.add_argument('--stop_threshold', type=float, default=90, help='val mAP threshold of early stopping')
+        parser.add_argument('-v', '--verbose', action='store_true', help='show details')
 
         return parser

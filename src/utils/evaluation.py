@@ -88,3 +88,12 @@ def spearman_correlation(x, y):
     upper = 6 * torch.sum((x_rank - y_rank).pow(2), dim=1)
     down = n * (n ** 2 - 1.0)
     return torch.mean(1.0 - (upper / down)).item()
+
+
+def showCM(cms):
+    for i, cm in enumerate(cms):
+        print(f"Confusion Matrix for Class {i + 1}")
+        print("True \\ Pred", "  0  ", "  1  ")
+        print("     0      ", f"{cm[0, 0]:<5}", f"{cm[0, 1]:<5}")
+        print("     1      ", f"{cm[1, 0]:<5}", f"{cm[1, 1]:<5}")
+        print("\n" + "-" * 20 + "\n")

@@ -29,7 +29,6 @@ def get_album(album_path, album_importance, album_clip_length, img_size, transfo
     tensor_batch = torch.stack(tensor_batch)
     if transforms is None:
         tensor_batch = tensor_batch.permute(0, 3, 1, 2)   # HWC to CHW
-    img_score_dict.clear() # save memory
     return tensor_batch, importance_scores
 
 class CUFED(Dataset):
@@ -40,16 +39,13 @@ class CUFED(Dataset):
                     'Protest', 'ReligiousActivity', 'Show', 'Sports', 'ThemePark',
                     'UrbanTrip', 'Wedding', 'Zoo']
 
-    def __init__(self, root_dir, split_dir, is_train=True, is_val=False, img_size=224, album_clip_length=32, ext_model=None):
+    def __init__(self, root_dir, split_dir, is_train=True, img_size=224, album_clip_length=32, ext_model=None):
         self.img_size = img_size
         self.album_clip_length = album_clip_length
         self.root_dir = root_dir
 
         if is_train:
-            if is_val:
-                self.phase = 'val'
-            else:
-                self.phase = 'train' 
+            self.phase = 'train' 
         else:
             self.phase = 'test'
 
@@ -63,14 +59,12 @@ class CUFED(Dataset):
 
         if self.phase == 'train':
             split_path = os.path.join(split_dir, 'train_split.txt')
-        elif self.phase == 'val':
-            split_path = os.path.join(split_dir, 'val_split.txt')
         else:
             split_path = os.path.join(split_dir, 'test_split.txt')
 
         with open(split_path, 'r') as f:
             album_names = f.readlines()
-            vidname_list = [name.strip() for name in album_names]
+        vidname_list = [name.strip() for name in album_names]
 
         if '33_65073328@N00' in vidname_list:
             vidname_list.remove('33_65073328@N00') # remove weird album
@@ -84,7 +78,6 @@ class CUFED(Dataset):
             album_importance = json.load(f)
 
         labels_np = np.zeros((len(vidname_list), len(self.event_labels)), dtype=np.float32)
-
         for i, vidname in enumerate(vidname_list):
             for lbl in album_labels[vidname]:
                 idx = self.event_labels.index(lbl)
