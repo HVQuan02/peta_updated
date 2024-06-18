@@ -104,7 +104,6 @@ class TrainOptions(BaseOptions):
         parser.add_argument('--lr', type=float, default=1e-5, help='base learning rate')
         parser.add_argument('--weight_decay', type=float, default=1e-3, help='weight decay rate')
         parser.add_argument('--warmup_epochs', type=int, default=10, help='number of warmup epochs')
-        parser.add_argument('--save_folder', default='/kaggle/working/weights', help='directory to save checkpoints')
         parser.add_argument('--patience', type=int, default=20, help='patience of early stopping')
         parser.add_argument('--min_delta', type=float, default=0.1, help='min delta of early stopping')
 

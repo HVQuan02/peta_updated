@@ -22,7 +22,7 @@ class BaseOptions():
         parser.add_argument('--val_list', required=False, help='.txt file containing validation image list')
 
 
-        parser.add_argument('--save_dir', type=str, default='./checkpoints', help='where checkpoints and log are save. The final saved dir would be: <save_dir>/<name>/version_<0,1,2...>/')
+        parser.add_argument('--save_dir', type=str, default='/kaggle/working/weights', help='where checkpoints and log are save')
         parser.add_argument('--batch_size', type=int, default=2, help='input batch size')
 
         # Distributed

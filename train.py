@@ -11,7 +11,6 @@ from datasets import CUFED
 from models.models import MTResnetAggregate
 from options.train_options import TrainOptions
 
-
 args = TrainOptions().parse()
 
 def validate_one_epoch(model, test_loader, test_dataset, device):
@@ -90,7 +89,6 @@ def main():
     print("train_set={}".format(len(train_dataset)))
     print("test_set={}".format(len(test_dataset)))
 
-
   if args.loss == 'asymmetric':
     crit = AsymmetricLossOptimized()
   elif args.loss == 'bce':
@@ -147,12 +145,12 @@ def main():
       'sched_state_dict': sched.state_dict()
     }
 
-    torch.save(model_config, os.path.join(args.save_folder, 'last-updatedPETA-{}.pt'.format(args.dataset)))
+    torch.save(model_config, os.path.join(args.save_dir, 'last-updatedPETA-{}.pt'.format(args.dataset)))
 
     is_early_stopping, is_save_ckpt = early_stopper.early_stop(val_mAP)
 
     if is_save_ckpt:
-      torch.save(model_config, os.path.join(args.save_folder, 'best-updatedPETA-{}.pt'.format(args.dataset)))
+      torch.save(model_config, os.path.join(args.save_dir, 'best-updatedPETA-{}.pt'.format(args.dataset)))
          
     if is_early_stopping:
       print('Early stop at epoch {}'.format(epoch_cnt)) 
@@ -160,6 +158,7 @@ def main():
 
     if args.verbose:
       print("[epoch {}] train_loss={} val_mAP={} dt_train={:.2f}sec dt_val={:.2f}sec dt={:.2f}sec".format(epoch_cnt, train_loss, val_mAP, t1 - t0, t3 - t2, t1 - t0 + t3 - t2))  
+
 
 if __name__ == '__main__':
   main()
