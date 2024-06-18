@@ -40,7 +40,7 @@ class BaseOptions():
                             default='../CUFED_split/event_type.json')
         parser.add_argument('--image_importance_pth', type=str,
                             default='../CUFED_split/image_importance.json')
-        parser.add_argument('--threshold', type=float, default=0.8)
+        parser.add_argument('--threshold', type=float, default=0.75)
         parser.add_argument('--ckpt_path', type=str, default=None)
 
         # accelerator
@@ -84,7 +84,7 @@ class BaseOptions():
                             default=0.9, help='gamma factor for lr_scheduler')
 
         # For early stopping
-        parser.add_argument('--stopping_threshold', type=float, default=90, 
+        parser.add_argument('--stopping_threshold', type=float, default=99, 
                             help='stops training when reach this threshold measured in mAP metric')
 
         # Choosing loss functions
