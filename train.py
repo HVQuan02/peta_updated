@@ -70,6 +70,9 @@ def main():
     torch.manual_seed(args.seed)
     torch.cuda.manual_seed(args.seed)
 
+  if not os.path.exists(args.save_dir):
+     os.mkdir(args.save_dir)
+
   device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
   start_epoch = 0
