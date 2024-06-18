@@ -2,6 +2,7 @@ import time
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
+from torch.optim.swa_utils import AveragedModel, get_ema_multi_avg_fn
 from sklearn.metrics import accuracy_score, multilabel_confusion_matrix, classification_report
 from src.utils.evaluation import AP_partial, spearman_correlation, showCM
 from datasets import CUFED
@@ -65,17 +66,19 @@ def main():
     print("running on {}".format(device))
     print("test_set={}".format(len(test_dataset)))
 
+  if args.ema:
+    model = AveragedModel(model, multi_avg_fn=get_ema_multi_avg_fn(0.999))
   state = torch.load(args.model_path)
   print('load model from epoch', state['epoch'])
   model.load_state_dict(state['model_state_dict'])
+  
   t0 = time.perf_counter()
   map_micro, map_macro, acc, spearman, cms, cr = evaluate(model, test_dataset, test_loader, device)
   t1 = time.perf_counter()
 
-  if args.verbose:
-    print("map_micro={} map_macro={} accuracy={} spearman={} dt={:.2f}sec".format(map_micro, map_macro, acc * 100, spearman, t1 - t0))
-    print(cr)
-    showCM(cms)
+  print("map_micro={} map_macro={} accuracy={} spearman={} dt={:.2f}sec".format(map_micro, map_macro, acc * 100, spearman, t1 - t0))
+  print(cr)
+  showCM(cms)
 
 if __name__ == '__main__':
   main()

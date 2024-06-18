@@ -35,7 +35,7 @@ class BaseOptions():
             '--train_list', help='.txt file containing training image list')
 
         parser.add_argument('--album_clip_length', type=int,
-                            help='length of album', default=32)
+                            help='length of album', default=30)
         parser.add_argument('--event_type_pth', type=str,
                             default='../CUFED_split/event_type.json')
         parser.add_argument('--image_importance_pth', type=str,
@@ -116,15 +116,13 @@ class BaseOptions():
         parser.add_argument('--model_name', type=str, default='mtresnetaggregate')
         parser.add_argument('--model_path', type=str, default='./weights/PETA-cufed.pt')
         parser.add_argument('--num_workers', type=int, default=4, help='number of workers for data loader')
+        parser.add_argument('--dataset', default='cufed', choices=['cufed', 'pec'])
+        parser.add_argument('--dataset_path', type=str, default='/kaggle/input/thesis-cufed/CUFED')
+        parser.add_argument('--split_path', type=str, default='/kaggle/input/cufed-full-split')
+        parser.add_argument('--dataset_type', type=str, default='ML_CUFED')
         parser.add_argument('--img_size', type=int, default=224)
         parser.add_argument('--remove_model_jit', type=int, default=None)
-        parser.add_argument('--optimizer', type=str, default='adamw', choices=['sgd', 'adam', 'adamw'])
-        parser.add_argument('--lr_policy', type=str, default='cosine', choices=['cosine', 'step', 'multi_step', 'onecycle'])
-        parser.add_argument('--lr', type=float, default=1e-5, help='base learning rate')
-        parser.add_argument('--weight_decay', type=float, default=1e-3, help='weight decay rate')
-        parser.add_argument('--warmup_epochs', type=int, default=10, help='number of warmup epochs')
-        parser.add_argument('--patience', type=int, default=20, help='patience of early stopping')
-        parser.add_argument('--min_delta', type=float, default=0.1, help='min delta of early stopping')
+        parser.add_argument('--backbone', type=str, default=None, help='feature extraction backbone network')
         parser.add_argument('-v', '--verbose', action='store_true', help='show details')
 
         self.initialized = True

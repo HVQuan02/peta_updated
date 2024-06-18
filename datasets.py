@@ -39,7 +39,7 @@ class CUFED(Dataset):
                     'Protest', 'ReligiousActivity', 'Show', 'Sports', 'ThemePark',
                     'UrbanTrip', 'Wedding', 'Zoo']
 
-    def __init__(self, root_dir, split_dir, is_train=True, img_size=224, album_clip_length=32, ext_model=None):
+    def __init__(self, root_dir, split_dir, is_train=True, img_size=224, album_clip_length=30, ext_model=None):
         self.img_size = img_size
         self.album_clip_length = album_clip_length
         self.root_dir = root_dir
