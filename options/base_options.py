@@ -35,7 +35,7 @@ class BaseOptions():
             '--train_list', help='.txt file containing training image list')
 
         parser.add_argument('--album_clip_length', type=int,
-                            help='length of album', default=30)
+                            help='length of album', default=32)
         parser.add_argument('--event_type_pth', type=str,
                             default='../CUFED_split/event_type.json')
         parser.add_argument('--image_importance_pth', type=str,

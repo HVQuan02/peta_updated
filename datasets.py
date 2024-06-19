@@ -39,7 +39,7 @@ class CUFED(Dataset):
             tensor_batch = tensor_batch.permute(0, 3, 1, 2)   # HWC to CHW
         return tensor_batch, importance_scores
 
-    def __init__(self, root_dir, split_dir, is_train=True, img_size=224, album_clip_length=30, ext_model=None):
+    def __init__(self, root_dir, split_dir, is_train=True, img_size=224, album_clip_length=32, ext_model=None):
         self.img_size = img_size
         self.album_clip_length = album_clip_length
         self.root_dir = root_dir
