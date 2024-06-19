@@ -19,7 +19,7 @@ from models.attention.AFT import AFT_FULL
 
 
 class fTResNet(nn.Module):
-    def __init__(self, encoder_name='resnet152.tv2_in1k', num_classes=23, aggregate=None, args=None):
+    def __init__(self, encoder_name, num_classes=23, aggregate=None, args=None):
         super(fTResNet, self).__init__()
         self.feature_extraction = timm.create_model(model_name=encoder_name, pretrained=True, num_classes=0).eval()
         self.head = nn.Linear(self.feature_extraction.num_features, num_classes)
