@@ -58,14 +58,6 @@ def display_image(montage, tags, filename, path_dest):
     plt.title("Predicted classes: {}".format(tags))
     plt.savefig(os.path.join(path_dest, filename))
 
-def show_top_frames(model, tensor_batch):
-    _, attention = model(tensor_batch)
-    importance = torch.squeeze(attention[:, 0, 1:])
-    np_importance = importance.cpu().detach().numpy()
-    idx_sort = np.argsort(-np_importance)
-    top_frames = tensor_batch.squeeze(0).cpu().detach().numpy()[idx_sort][:args.n_frames]
-    montage = torchvision.utils.make_grid(top_frames).permute(1, 2, 0).cpu()
-
 def main():
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 

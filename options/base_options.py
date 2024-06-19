@@ -114,7 +114,6 @@ class BaseOptions():
                             default='multihead')
         # peta
         parser.add_argument('--model_name', type=str, default='mtresnetaggregate')
-        parser.add_argument('--model_path', type=str, default='./weights/PETA-cufed.pt')
         parser.add_argument('--num_workers', type=int, default=4, help='number of workers for data loader')
         parser.add_argument('--dataset', default='cufed', choices=['cufed', 'pec'])
         parser.add_argument('--dataset_path', type=str, default='/kaggle/input/thesis-cufed/CUFED')
