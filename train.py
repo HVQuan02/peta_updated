@@ -78,8 +78,9 @@ def main():
   device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
   start_epoch = 0
-  model = MTResnetAggregate(args).to(device)
+  model = MTResnetAggregate(args)
   ema_model = AveragedModel(model, multi_avg_fn=get_ema_multi_avg_fn(0.999))
+  model = model.to(device)
 
   if args.dataset == 'cufed':
     train_dataset = CUFED(root_dir=args.dataset_path, split_dir=args.split_path, img_size=args.img_size, album_clip_length=args.album_clip_length, ext_model=model.feature_extraction)

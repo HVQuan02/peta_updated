@@ -36,6 +36,8 @@ class BaseOptions():
 
         parser.add_argument('--album_clip_length', type=int,
                             help='length of album', default=32)
+        parser.add_argument('--input_size', type=int,
+                            help='expected size of input image', default=224)
         parser.add_argument('--event_type_pth', type=str,
                             default='../CUFED_split/event_type.json')
         parser.add_argument('--image_importance_pth', type=str,

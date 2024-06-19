@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import torchvision.utils
 from PIL import Image
 import numpy as np
-from src.models import create_model
+from models.models import MTResnetAggregate
 from torch.optim.swa_utils import AveragedModel, get_ema_multi_avg_fn
 from options.infer_options import InferOptions
 
@@ -12,7 +12,7 @@ args = InferOptions().parse()
 
 def get_album(args, device):
     files = os.listdir(args.album_path)
-    idx_fetch = np.linspace(0, len(files)-1, args.album_clip_length, dtype=int)
+    idx_fetch = np.linspace(0, len(files) - 1, args.album_clip_length, dtype=int)
     tensor_batch = torch.zeros(len(idx_fetch), args.input_size, args.input_size, 3)
     for i, id in enumerate(idx_fetch):
         im = Image.open(os.path.join(args.album_path, files[id]))
@@ -37,8 +37,8 @@ def inference(tensor_batch, model, classes_list, args):
     album_np = tensor_batch.squeeze(0).cpu().detach().numpy()
     top_frames = album_np[top_idx][:args.n_frames]
     worst_frames = album_np[worst_idx][:args.n_frames]
-    top_montage = torchvision.utils.make_grid(top_frames).permute(1, 2, 0).cpu()
-    worst_montage = torchvision.utils.make_grid(worst_frames).permute(1, 2, 0).cpu()
+    top_montage = torchvision.utils.make_grid(torch.from_numpy(top_frames)).permute(1, 2, 0).cpu()
+    worst_montage = torchvision.utils.make_grid(torch.from_numpy(worst_frames)).permute(1, 2, 0).cpu()
 
     # Top-k
     detected_classes = np.array(classes_list)[idx_sort][:args.top_k]
@@ -53,7 +53,6 @@ def display_image(montage, tags, filename, path_dest):
     plt.figure()
     plt.imshow(montage)
     plt.axis('off')
-    plt.axis('tight')
     plt.rcParams["axes.titlesize"] = 16
     plt.title("Predicted classes: {}".format(tags))
     plt.savefig(os.path.join(path_dest, filename))
@@ -63,7 +62,7 @@ def main():
 
     # Setup model
     state = torch.load(args.model_path, map_location='cpu')
-    model = create_model(args).to(device)
+    model = MTResnetAggregate(args).to(device)
     if args.ema:
         model = AveragedModel(model, multi_avg_fn=get_ema_multi_avg_fn(0.999))
     print('load model from epoch {}'.format(state['epoch']))
