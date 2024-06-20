@@ -15,25 +15,21 @@ class BaseOptions():
         parser.add_argument('--num_threads', default=8, type=int, help='# threads for loading data')
         parser.add_argument('--seed', type=int, default=2024, help='seed for random generators')
         parser.add_argument('--use_ocr', action='store_true', help='apply OCR')
-
         parser.add_argument('--normalization', default='imagenet', help='normalization type: imagenet, default (1/255)')
         parser.add_argument('--val_root', required=False, help='root folder containing images for validation')
         parser.add_argument('--val_list', required=False, help='.txt file containing validation image list')
-
-
-        parser.add_argument('--save_dir', type=str, default='/kaggle/working/weights', help='where checkpoints and log are save')
+        parser.add_argument('--save_dir', type=str, default='weights', help='where checkpoints and log are save')
         parser.add_argument('--batch_size', type=int, default=2, help='input batch size')
 
         # Distributed
         parser.add_argument('--gpus', type=str, default='0', help='gpu ids for training, testing. e.g. 0 or 0,1,2')
         parser.add_argument('--accelerator', type=str, default='ddp', help='DataParallel (dp), DistributedDataParallel (ddp)')
 
-                # For dataset paths configurations
+        # For dataset paths configurations
         parser.add_argument(
             '--train_root', help='root folder containing images for training')
         parser.add_argument(
             '--train_list', help='.txt file containing training image list')
-
         parser.add_argument('--album_clip_length', type=int,
                             help='length of album', default=32)
         parser.add_argument('--input_size', type=int,
@@ -63,10 +59,8 @@ class BaseOptions():
                             help='apply only left-right flipping in augmentation')
         parser.add_argument('--use_color_aug', action='store_true',
                             help='apply color jitter in augmentation')
-
         parser.add_argument('--resume', type=str,
                           help='resume path for continue training (.ckpt)')
-
         parser.add_argument('--max_epoch', type=int,
                             default=100, help='maximum epochs')
         
@@ -103,17 +97,14 @@ class BaseOptions():
         # use transformer
         parser.add_argument('--transformers_pos', type=int, default=1)
         parser.add_argument('--use_transformer', type=int, default=1)
-
         parser.add_argument('--gamma_neg', type=int, default=4)
         parser.add_argument('--gamma_pos', type=int, default=0.05)
         parser.add_argument('--clip', type=int, default=0.05)
-        parser.add_argument(
-            '--num_classes_to_remove_negative_backprop', type=int, default=23)
-        parser.add_argument('--partial_loss_mode', type=str,
-                            default='negative_backprop')
+        parser.add_argument('--num_classes_to_remove_negative_backprop', type=int, default=23)
+        parser.add_argument('--partial_loss_mode', type=str, default='negative_backprop')
         parser.add_argument('--infer', type=int, default=0)
-        parser.add_argument('--attention', type=str,
-                            default='multihead')
+        parser.add_argument('--attention', type=str, default='multihead')
+        
         # peta
         parser.add_argument('--model_name', type=str, default='mtresnetaggregate')
         parser.add_argument('--num_workers', type=int, default=4, help='number of workers for data loader')

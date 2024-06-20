@@ -85,6 +85,10 @@ def main():
     model = model.to(device)
     model.eval()
 
+    path_splits = args.album_path.split('/')
+    album_path = path_splits[-2] + '/' + path_splits[-1]
+    output_path = os.path.join(args.path_output, album_path)
+
     # Get album
     tensor_batch, montage = get_album(args, device)
 
@@ -92,10 +96,9 @@ def main():
     tags, confs, top_montage, worst_montage = inference(tensor_batch, model, classes_list, args)
 
     # Visualization
-    display_image(montage, tags, 'montage_event.jpg', os.path.join(args.path_output, args.album_path).replace("./albums", ""))
-    print('confs:', confs)
-    display_image(top_montage, 'Best frames', 'top_montage.jpg', os.path.join(args.path_output, args.album_path).replace("./albums", ""))
-    display_image(worst_montage, 'Worst frames', 'worst_montage.jpg', os.path.join(args.path_output, args.album_path).replace("./albums", ""))
+    display_image(montage, tags, 'montage_event.jpg', output_path)
+    display_image(top_montage, 'best frames', 'top_montage.jpg', output_path)
+    display_image(worst_montage, 'worst frames', 'worst_montage.jpg', output_path)
 
 
 if __name__ == '__main__':
