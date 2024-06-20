@@ -1,4 +1,5 @@
 import os
+import time
 import torch
 import numpy as np
 from PIL import Image
@@ -27,7 +28,10 @@ def get_album(args, device):
 
 
 def inference(tensor_batch, model, classes_list, args):
+    t0 = time.perf_counter()
     logits, attention = model(tensor_batch)
+    t1 = time.perf_counter()
+    print('inference_time = {:.2f}ms'.format((t1 - t0) * 1000))
     output = torch.squeeze(torch.sigmoid(logits))
     np_output = output.cpu().detach().numpy()
     idx_sort = np.argsort(-np_output)
