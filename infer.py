@@ -1,14 +1,15 @@
-import torch
 import os
-import matplotlib.pyplot as plt
-import torchvision.utils
-from PIL import Image
+import torch
 import numpy as np
+from PIL import Image
+import matplotlib.pyplot as plt
+from torchvision.utils import make_grid
 from models.models import MTResnetAggregate
-from torch.optim.swa_utils import AveragedModel, get_ema_multi_avg_fn
 from options.infer_options import InferOptions
+from torch.optim.swa_utils import AveragedModel, get_ema_multi_avg_fn
 
 args = InferOptions().parse()
+
 
 def get_album(args, device):
     files = os.listdir(args.album_path)
@@ -20,9 +21,10 @@ def get_album(args, device):
         np_img = np.array(im_resize, dtype=np.uint8)
         tensor_batch[i] = torch.from_numpy(np_img).float() / 255.0
     tensor_batch = tensor_batch.permute(0, 3, 1, 2)   # HWC to CHW
-    montage = torchvision.utils.make_grid(tensor_batch).permute(1, 2, 0).cpu()
+    montage = make_grid(tensor_batch).permute(1, 2, 0).cpu()
     tensor_batch = torch.unsqueeze(tensor_batch, 0).to(device)
     return tensor_batch, montage
+
 
 def inference(tensor_batch, model, classes_list, args):
     logits, attention = model(tensor_batch)
@@ -37,15 +39,17 @@ def inference(tensor_batch, model, classes_list, args):
     album_np = tensor_batch.squeeze(0).cpu().detach().numpy()
     top_frames = album_np[top_idx][:args.n_frames]
     worst_frames = album_np[worst_idx][:args.n_frames]
-    top_montage = torchvision.utils.make_grid(torch.from_numpy(top_frames)).permute(1, 2, 0).cpu()
-    worst_montage = torchvision.utils.make_grid(torch.from_numpy(worst_frames)).permute(1, 2, 0).cpu()
+    top_montage = make_grid(torch.from_numpy(top_frames)).permute(1, 2, 0).cpu()
+    worst_montage = make_grid(torch.from_numpy(worst_frames)).permute(1, 2, 0).cpu()
 
     # Top-k
     detected_classes = np.array(classes_list)[idx_sort][:args.top_k]
     scores = np_output[idx_sort][: args.top_k]
     # Threshold
     idx_th = scores > args.threshold
+
     return detected_classes[idx_th], scores[idx_th], top_montage, worst_montage
+
 
 def display_image(montage, tags, filename, path_dest):
     if not os.path.exists(path_dest):
@@ -57,22 +61,25 @@ def display_image(montage, tags, filename, path_dest):
     plt.title("Predicted classes: {}".format(tags))
     plt.savefig(os.path.join(path_dest, filename))
 
+
 def main():
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-    # Setup model
-    state = torch.load(args.model_path, map_location='cpu')
-    model = MTResnetAggregate(args).to(device)
-    if args.ema:
-        model = AveragedModel(model, multi_avg_fn=get_ema_multi_avg_fn(0.999))
-    print('load model from epoch {}'.format(state['epoch']))
-    model.load_state_dict(state['model_state_dict'], strict=True)
-    model.eval()
     classes_list = np.array(['Architecture', 'BeachTrip', 'Birthday', 'BusinessActivity',
         'CasualFamilyGather', 'Christmas', 'Cruise', 'Graduation', 'GroupActivity',
         'Halloween', 'Museum', 'NatureTrip', 'PersonalArtActivity',
         'PersonalMusicActivity', 'PersonalSports', 'Protest', 'ReligiousActivity',
         'Show', 'Sports', 'ThemePark', 'UrbanTrip', 'Wedding', 'Zoo'])
+
+    model = MTResnetAggregate(args)
+    if args.ema:
+        model = AveragedModel(model, multi_avg_fn=get_ema_multi_avg_fn(0.999))
+
+    state = torch.load(args.model_path, map_location=device)
+    print('load model from epoch {}'.format(state['epoch']))
+    model.load_state_dict(state['model_state_dict'], strict=True)
+    model = model.to(device)
+    model.eval()
 
     # Get album
     tensor_batch, montage = get_album(args, device)

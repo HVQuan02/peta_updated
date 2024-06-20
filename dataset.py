@@ -1,10 +1,11 @@
 import os
 import json
-import numpy as np
+import timm
 import torch
+import numpy as np
 from PIL import Image
 from torch.utils.data import Dataset
-import timm
+
 
 class CUFED(Dataset):
     event_labels = ['Architecture', 'BeachTrip', 'Birthday', 'BusinessActivity',
