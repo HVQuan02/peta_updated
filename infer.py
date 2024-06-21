@@ -1,5 +1,4 @@
 import os
-import time
 import torch
 import numpy as np
 from PIL import Image
@@ -28,10 +27,7 @@ def get_album(args, device):
 
 
 def inference(tensor_batch, model, classes_list, args):
-    t0 = time.perf_counter()
     logits, attention = model(tensor_batch)
-    t1 = time.perf_counter()
-    print('inference_time = {:.2f}ms'.format((t1 - t0) * 1000))
     output = torch.squeeze(torch.sigmoid(logits))
     np_output = output.cpu().detach().numpy()
     idx_sort = np.argsort(-np_output)
@@ -49,6 +45,8 @@ def inference(tensor_batch, model, classes_list, args):
     # Top-k
     detected_classes = np.array(classes_list)[idx_sort][:args.top_k]
     scores = np_output[idx_sort][: args.top_k]
+    print('detected_classes', detected_classes)
+    print('scores', scores)
     # Threshold
     idx_th = scores > args.threshold
 
@@ -62,7 +60,7 @@ def display_image(montage, tags, filename, path_dest):
     plt.imshow(montage)
     plt.axis('off')
     plt.rcParams["axes.titlesize"] = 16
-    plt.title("Predicted classes: {}".format(tags))
+    plt.title(tags)
     plt.savefig(os.path.join(path_dest, filename))
 
 
@@ -96,9 +94,9 @@ def main():
     tags, confs, top_montage, worst_montage = inference(tensor_batch, model, classes_list, args)
 
     # Visualization
-    display_image(montage, tags, 'montage_event.jpg', output_path)
-    display_image(top_montage, 'best frames', 'top_montage.jpg', output_path)
-    display_image(worst_montage, 'worst frames', 'worst_montage.jpg', output_path)
+    display_image(montage, tags, 'montage.jpg', output_path)
+    display_image(top_montage, '{} best frames'.format(args.n_frames), 'best_montage.jpg', output_path)
+    display_image(worst_montage, '{} worst frames'.format(args.n_frames), 'worst_montage.jpg', output_path)
 
 
 if __name__ == '__main__':
