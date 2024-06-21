@@ -97,3 +97,84 @@ class CUFED(Dataset):
         album_importance = self.importance[self.videos[idx]]
         album_tensor, importance_scores = self.get_album(album_path, album_importance, self.album_clip_length, self.img_size, self.transforms)
         return album_tensor, self.labels[idx], importance_scores
+    
+    
+class CUFED_VIT_CLIP(Dataset):
+    NUM_CLASS = 23
+    NUM_FRAMES = 30
+    NUM_BOXES = 50
+    NUM_FEATS = 1024
+    event_labels = ['Architecture', 'BeachTrip', 'Birthday', 'BusinessActivity',
+                    'CasualFamilyGather', 'Christmas', 'Cruise', 'Graduation',
+                    'GroupActivity', 'Halloween', 'Museum', 'NatureTrip',
+                    'PersonalArtActivity', 'PersonalMusicActivity', 'PersonalSports',
+                    'Protest', 'ReligiousActivity', 'Show', 'Sports', 'ThemePark',
+                    'UrbanTrip', 'Wedding', 'Zoo']
+
+    def get_album_importance(self, album_imgs, album_importance):
+        img_to_score = {}
+        for _, image, score in album_importance:
+            img_to_score[image.split('/')[1]] = score
+        importance = np.zeros(len(album_imgs))
+        for i, image in enumerate(album_imgs):
+            importance[i] = img_to_score[image[:-4]]
+        return importance
+
+    def __init__(self, root_dir, feats_dir, split_dir, is_train=True):
+        self.root_dir = root_dir
+        self.feats_dir = feats_dir
+        self.global_folder = 'clip_global'
+        
+        if is_train:
+            self.phase = 'train'
+        else:
+            self.phase = 'test'
+
+        if self.phase == 'train':
+            split_path = os.path.join(split_dir, 'train_split.txt')
+        else:
+            split_path = os.path.join(split_dir, 'test_split.txt')
+
+        with open(split_path, 'r') as f:
+            album_names = f.readlines()
+        vidname_list = [name.strip() for name in album_names]
+
+        label_path = os.path.join(root_dir, "event_type.json")
+        with open(label_path, 'r') as f:
+          album_data = json.load(f)
+
+        labels_np = np.zeros((len(vidname_list), self.NUM_CLASS), dtype=np.float32)
+        for i, vidname in enumerate(vidname_list):
+            for lbl in album_data[vidname]:
+                idx = self.event_labels.index(lbl)
+                labels_np[i, idx] = 1
+
+        self.videos = vidname_list
+        self.labels = labels_np
+
+        importance_path = os.path.join(root_dir, "image_importance.json")
+        with open(importance_path, 'r') as f:
+            album_importance = json.load(f)
+
+        album_imgs_path = os.path.join(split_dir, "album_imgs_mask.json")
+        with open(album_imgs_path, 'r') as f:
+            album_imgs = json.load(f)
+            
+        self.importance = album_importance
+        self.album_imgs = album_imgs
+
+    def __len__(self):
+        return len(self.videos)
+
+    def __getitem__(self, idx):
+        name = self.videos[idx]
+
+        global_path = os.path.join(self.feats_dir, self.global_folder, name + '.npy')
+        feat_global = np.load(global_path)
+        label = self.labels[idx, :]
+
+        album_imgs = self.album_imgs[name]
+        album_importance = self.importance[name]
+        importance = self.get_album_importance(album_imgs, album_importance)
+
+        return feat_global, label, importance

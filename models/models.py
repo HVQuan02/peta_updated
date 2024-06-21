@@ -21,7 +21,7 @@ from models.attention.AFT import AFT_FULL
 class fTResNet(nn.Module):
     def __init__(self, encoder_name, num_classes=23, aggregate=None, args=None):
         super(fTResNet, self).__init__()
-        self.feature_extraction = timm.create_model(model_name=encoder_name, pretrained=True, num_classes=0).eval()
+        # self.feature_extraction = timm.create_model(model_name=encoder_name, pretrained=True, num_classes=0).eval()
         self.head = nn.Linear(self.feature_extraction.num_features, num_classes)
         # self.global_pool = FastAdaptiveAvgPool2d(flatten=True)
 
@@ -56,8 +56,8 @@ class fTResNet(nn.Module):
         B, N, C, H, W = x.shape
         x = x.view(B * N, C, H, W)
 
-        with torch.no_grad():
-            x = self.feature_extraction(x)
+        # with torch.no_grad():
+        #     x = self.feature_extraction(x)
         # x = self.body(x)
         # self.embeddings = self.global_pool(x)
         self.embeddings = x
