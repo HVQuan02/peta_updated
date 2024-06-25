@@ -10,6 +10,7 @@ import timm
 from models.attention.EMSA import EMSA
 from models.attention.ExternalAttention import ExternalAttention
 from models.attention.AFT import AFT_FULL
+from dataset import CUFED_VIT, CUFED_VIT_CLIP
 
 # from src.models.resnet.resnet import Bottleneck as ResnetBottleneck
 # from models.resnet.resnet import ResNet
@@ -18,19 +19,19 @@ from models.attention.AFT import AFT_FULL
 
 
 class fTResNet(nn.Module):
-    def __init__(self, encoder_name, num_classes=23, aggregate=None, args=None):
+    def __init__(self, encoder_name=None, num_classes=23, aggregate=None, args=None):
         super(fTResNet, self).__init__()
-        # self.feature_extraction = timm.create_model(model_name=encoder_name, pretrained=True, num_classes=0).eval()
-#         self.head = nn.Linear(self.feature_extraction.num_features, num_classes)
-        self.head = nn.Linear(1024, num_classes)
-        # self.global_pool = FastAdaptiveAvgPool2d(flatten=True)
+        if encoder_name is not None:
+            self.feature_extraction = timm.create_model(model_name=encoder_name, pretrained=True, num_classes=0).eval()
+            num_feats = self.feature_extraction.num_features
+        elif args.use_clip:
+            num_feats = CUFED_VIT_CLIP.NUM_FEATS
+        else:
+            num_feats = CUFED_VIT.NUM_FEATS
 
-        # self.fc1 = nn.Sequential(
-        #     nn.Linear(self.feature_extraction.num_features, 500),
-        #     nn.ReLU(inplace=True),
-        #     nn.Dropout2d(p=0.5),
-        #     nn.Linear(500, 1),
-        # )
+        self.head = nn.Linear(num_feats, num_classes)
+
+        # self.global_pool = FastAdaptiveAvgPool2d(flatten=True)
 
         if args.use_transformer:
             if args.attention == 'aft':
@@ -44,28 +45,26 @@ class fTResNet(nn.Module):
                 aggregate = TAtentionAggregate(
                     args.album_clip_length, enc_layer=attention, embed_dim=self.feature_extraction.num_features, args=args)
             else:
-#                 aggregate = TAggregate(
-#                     args.album_clip_length, embed_dim=self.feature_extraction.num_features, args=args)
-                aggregate = TAggregate(
-                    args.album_clip_length, embed_dim=1024, args=args)
-
+                aggregate = TAggregate(args.album_clip_length, embed_dim=num_feats, args=args)
         else:
             aggregate = Aggregate(args.album_clip_length, args=args)
 
         self.aggregate = aggregate
 
     def forward(self, x, filenames=None):
-#         B, N, C, H, W = x.shape
-#         x = x.view(B * N, C, H, W)
+        if self.feature_extraction is not None:
+            B, N, C, H, W = x.shape
+            x = x.view(B * N, C, H, W)
+            with torch.no_grad():
+                x = self.feature_extraction(x)
+        else:
+            B, N, F = x.shape
+            x = x.view(B * N, F)
 
-        # with torch.no_grad():
-        #     x = self.feature_extraction(x)
         # x = self.body(x)
         # self.embeddings = self.global_pool(x)
-        B, N, F = x.shape
-        x = x.view(B * N, F)
+
         self.embeddings = x
-        # importance = self.fc1(self.embeddings)
 
         if self.aggregate:
             if isinstance(self.aggregate, TAggregate):
@@ -84,7 +83,7 @@ class fTResNet(nn.Module):
         #     return logits
         # else:
         #     return (logits, attn_mat)
-        # return logits, importance, self.attention
+
         return logits, self.attention
 
 

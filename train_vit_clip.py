@@ -3,7 +3,7 @@ import os
 import torch
 import numpy as np
 import torch.nn as nn
-from dataset import CUFED_VIT_CLIP
+from dataset import CUFED, CUFED_VIT, CUFED_VIT_CLIP
 from torch.utils.data import DataLoader
 from models.models import MTResnetAggregate
 from src.utils.evaluation import AP_partial
@@ -88,8 +88,15 @@ def main():
   ema_model = AveragedModel(model, multi_avg_fn=get_ema_multi_avg_fn(0.999))
 
   if args.dataset == 'cufed':
-    train_dataset = CUFED_VIT_CLIP(root_dir=args.dataset_path, feats_dir=args.feats_dir, split_dir=args.split_path)
-    val_dataset = CUFED_VIT_CLIP(root_dir=args.dataset_path, feats_dir=args.feats_dir, split_dir=args.split_path, is_train=False)
+    if args.backbone is not None:
+      train_dataset = CUFED(root_dir=args.dataset_path, split_dir=args.split_path, img_size=args.img_size, album_clip_length=args.album_clip_length, ext_model=model.feature_extraction)
+      val_dataset = CUFED(root_dir=args.dataset_path, split_dir=args.split_path, is_train=False, img_size=args.img_size, album_clip_length=args.album_clip_length, ext_model=model.feature_extraction)
+    elif args.use_clip:  
+      train_dataset = CUFED_VIT_CLIP(root_dir=args.dataset_path, feats_dir=args.feats_dir, split_dir=args.split_path)
+      val_dataset = CUFED_VIT_CLIP(root_dir=args.dataset_path, feats_dir=args.feats_dir, split_dir=args.split_path, is_train=False)
+    else:
+      train_dataset = CUFED_VIT(root_dir=args.dataset_path, feats_dir=args.feats_dir, split_dir=args.split_path)
+      val_dataset = CUFED_VIT(root_dir=args.dataset_path, feats_dir=args.feats_dir, split_dir=args.split_path, is_train=False)
   else:
     exit("Unknown dataset!")
      

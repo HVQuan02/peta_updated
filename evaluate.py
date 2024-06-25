@@ -1,5 +1,6 @@
 import time
 import torch
+import numpy as np
 import torch.nn as nn
 from dataset import CUFED_VIT_CLIP
 from torch.utils.data import DataLoader
@@ -23,7 +24,7 @@ def evaluate(model, test_dataset, test_loader, device):
     for batch in test_loader:
       feats, _, importances = batch
       feats = feats.to(device)
-      logits, attention = model(feats)
+      logits, attention, imp = model(feats)
       shape = logits.shape[0]
       scores[gidx:gidx+shape, :] = logits.cpu()
       gidx += shape
@@ -37,6 +38,8 @@ def evaluate(model, test_dataset, test_loader, device):
 
     scores = scores.numpy()
     preds = preds.numpy()
+    if preds.sum() == 0:
+        preds[np.argmax(scores)] = 1
 
     attention_tensor = torch.cat(attentions).to(device)
     importance_labels = torch.cat(importance_labels).to(device)
@@ -46,7 +49,7 @@ def evaluate(model, test_dataset, test_loader, device):
     cr = classification_report(test_dataset.labels, preds)
 
     map_micro, map_macro = AP_partial(test_dataset.labels, scores)[1:3]
-    spearman = spearman_correlation(attention_tensor[:, 0, 1:], importance_labels)
+    spearman = spearman_correlation(attention_tensor[:, 0, 1:], importance_labels) # debug lay tu 0 hay 1
 
     return map_micro, map_macro, acc, spearman, cms, cr
 

@@ -80,7 +80,7 @@ class BaseOptions():
                             default=0.9, help='gamma factor for lr_scheduler')
 
         # For early stopping
-        parser.add_argument('--stopping_threshold', type=float, default=99, 
+        parser.add_argument('--stopping_threshold', type=float, default=99.99, 
                             help='stops training when reach this threshold measured in mAP metric')
 
         # Choosing loss functions
@@ -115,7 +115,7 @@ class BaseOptions():
         parser.add_argument('--dataset_type', type=str, default='ML_CUFED')
         parser.add_argument('--img_size', type=int, default=224)
         parser.add_argument('--remove_model_jit', type=int, default=None)
-        parser.add_argument('--backbone', type=str, default='resnet152.tv2_in1k', help='feature extraction backbone network')
+        parser.add_argument('--backbone', type=str, default=None, help='feature extraction backbone network')
         parser.add_argument('-v', '--verbose', action='store_true', help='show details')
 
         self.initialized = True
