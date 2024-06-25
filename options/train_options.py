@@ -3,7 +3,6 @@ from .base_options import BaseOptions
 class TrainOptions(BaseOptions):
     def initialize(self, parser):
         parser = BaseOptions.initialize(self, parser)
-        parser.add_argument('--use_clip', action='store_true', help='use vit clip or vit')
         parser.add_argument('--train_batch_size', type=int, default=16, help='train batch size')
         parser.add_argument('--val_batch_size', type=int, default=16, help='validate batch size')
         parser.add_argument('--optimizer', type=str, default='adamw', choices=['sgd', 'adam', 'adamw'])

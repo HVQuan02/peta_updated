@@ -38,7 +38,7 @@ class BaseOptions():
                             default='../CUFED_split/event_type.json')
         parser.add_argument('--image_importance_pth', type=str,
                             default='../CUFED_split/image_importance.json')
-        parser.add_argument('--threshold', type=float, default=0.8)
+        parser.add_argument('--threshold', type=float, default=0.75)
         parser.add_argument('--ckpt_path', type=str, default=None)
 
         # accelerator
@@ -107,6 +107,7 @@ class BaseOptions():
         
         # peta
         parser.add_argument('--model_name', type=str, default='mtresnetaggregate')
+        parser.add_argument('--use_clip', action='store_true', help='use vit clip or vit')
         parser.add_argument('--num_workers', type=int, default=4, help='number of workers for data loader')
         parser.add_argument('--dataset', default='cufed', choices=['cufed', 'pec'])
         parser.add_argument('--dataset_path', type=str, default='/kaggle/input/thesis-cufed/CUFED')

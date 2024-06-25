@@ -21,6 +21,7 @@ from dataset import CUFED_VIT, CUFED_VIT_CLIP
 class fTResNet(nn.Module):
     def __init__(self, encoder_name=None, num_classes=23, aggregate=None, args=None):
         super(fTResNet, self).__init__()
+        self.encoder_name = encoder_name
         if encoder_name is not None:
             self.feature_extraction = timm.create_model(model_name=encoder_name, pretrained=True, num_classes=0).eval()
             num_feats = self.feature_extraction.num_features
@@ -52,7 +53,7 @@ class fTResNet(nn.Module):
         self.aggregate = aggregate
 
     def forward(self, x, filenames=None):
-        if self.feature_extraction is not None:
+        if self.encoder_name is not None:
             B, N, C, H, W = x.shape
             x = x.view(B * N, C, H, W)
             with torch.no_grad():
