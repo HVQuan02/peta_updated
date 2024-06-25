@@ -35,6 +35,7 @@ def validate_one_epoch(model, val_dataset, val_loader, device):
 def train_one_epoch(ema_model, model, train_loader, crit, opt, sched, device):
   model.train()
   epoch_loss = 0
+    
   for batch in train_loader:
     feats, labels, _ = batch
     feats = feats.to(device)
@@ -87,8 +88,8 @@ def main():
   ema_model = AveragedModel(model, multi_avg_fn=get_ema_multi_avg_fn(0.999))
 
   if args.dataset == 'cufed':
-    train_dataset = CUFED_VIT_CLIP(root_dir=args.dataset_path, split_dir=args.split_path)
-    val_dataset = CUFED_VIT_CLIP(root_dir=args.dataset_path, split_dir=args.split_path, is_train=False)
+    train_dataset = CUFED_VIT_CLIP(root_dir=args.dataset_path, feats_dir=args.feats_dir, split_dir=args.split_path)
+    val_dataset = CUFED_VIT_CLIP(root_dir=args.dataset_path, feats_dir=args.feats_dir, split_dir=args.split_path, is_train=False)
   else:
     exit("Unknown dataset!")
      

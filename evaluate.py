@@ -1,7 +1,7 @@
 import time
 import torch
 import torch.nn as nn
-from dataset import CUFED
+from dataset import CUFED_VIT_CLIP
 from torch.utils.data import DataLoader
 from models.models import MTResnetAggregate
 from options.test_options import TestOptions
@@ -56,7 +56,7 @@ def main():
   model = MTResnetAggregate(args)
     
   if args.dataset == 'cufed':
-    test_dataset = CUFED(root_dir=args.dataset_path, split_dir=args.split_path, is_train=False, img_size=args.img_size, album_clip_length=args.album_clip_length, ext_model=model.feature_extraction)
+    test_dataset = CUFED_VIT_CLIP(root_dir=args.dataset_path, feats_dir=args.feats_dir, split_dir=args.split_path, is_train=False)
   else:
     exit("Unknown dataset!")
      

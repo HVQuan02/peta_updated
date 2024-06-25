@@ -1,4 +1,3 @@
-import imp
 import torch
 import torch.nn as nn
 from models.tresnet.tresnet import TResNet
@@ -22,7 +21,8 @@ class fTResNet(nn.Module):
     def __init__(self, encoder_name, num_classes=23, aggregate=None, args=None):
         super(fTResNet, self).__init__()
         # self.feature_extraction = timm.create_model(model_name=encoder_name, pretrained=True, num_classes=0).eval()
-        self.head = nn.Linear(self.feature_extraction.num_features, num_classes)
+#         self.head = nn.Linear(self.feature_extraction.num_features, num_classes)
+        self.head = nn.Linear(1024, num_classes)
         # self.global_pool = FastAdaptiveAvgPool2d(flatten=True)
 
         # self.fc1 = nn.Sequential(
@@ -44,8 +44,10 @@ class fTResNet(nn.Module):
                 aggregate = TAtentionAggregate(
                     args.album_clip_length, enc_layer=attention, embed_dim=self.feature_extraction.num_features, args=args)
             else:
+#                 aggregate = TAggregate(
+#                     args.album_clip_length, embed_dim=self.feature_extraction.num_features, args=args)
                 aggregate = TAggregate(
-                    args.album_clip_length, embed_dim=self.feature_extraction.num_features, args=args)
+                    args.album_clip_length, embed_dim=1024, args=args)
 
         else:
             aggregate = Aggregate(args.album_clip_length, args=args)
@@ -53,13 +55,15 @@ class fTResNet(nn.Module):
         self.aggregate = aggregate
 
     def forward(self, x, filenames=None):
-        B, N, C, H, W = x.shape
-        x = x.view(B * N, C, H, W)
+#         B, N, C, H, W = x.shape
+#         x = x.view(B * N, C, H, W)
 
         # with torch.no_grad():
         #     x = self.feature_extraction(x)
         # x = self.body(x)
         # self.embeddings = self.global_pool(x)
+        B, N, F = x.shape
+        x = x.view(B * N, F)
         self.embeddings = x
         # importance = self.fc1(self.embeddings)
 
