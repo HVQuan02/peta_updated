@@ -171,10 +171,10 @@ class CUFED_VIT(Dataset):
         name = self.videos[idx]
 
         global_path = os.path.join(self.feats_dir, self.global_folder, name + '.npy')
-        feat_global = np.load(global_path)[self.album_clip_length]
+        feat_global = np.load(global_path)[:self.album_clip_length]
         label = self.labels[idx, :]
 
-        album_imgs = self.album_imgs[name]
+        album_imgs = self.album_imgs[name][:self.album_clip_length]
         album_importance = self.importance[name]
         importance = self.get_album_importance(album_imgs, album_importance)
 
@@ -253,10 +253,11 @@ class CUFED_VIT_CLIP(Dataset):
         name = self.videos[idx]
 
         global_path = os.path.join(self.feats_dir, self.global_folder, name + '.npy')
-        feat_global = np.load(global_path)[:self.album_clip_length]
+        feat_global = np.load(global_path)
+        feat_global = feat_global[:self.album_clip_length]
         label = self.labels[idx, :]
 
-        album_imgs = self.album_imgs[name]
+        album_imgs = self.album_imgs[name][:self.album_clip_length]
         album_importance = self.importance[name]
         importance = self.get_album_importance(album_imgs, album_importance)
 

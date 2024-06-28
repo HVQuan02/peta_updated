@@ -2,10 +2,10 @@ import time
 import torch
 import numpy as np
 import torch.nn as nn
-from dataset import CUFED, CUFED_VIT, CUFED_VIT_CLIP
 from torch.utils.data import DataLoader
 from models.models import MTResnetAggregate
 from options.test_options import TestOptions
+from dataset import CUFED, CUFED_VIT, CUFED_VIT_CLIP
 from torch.optim.swa_utils import AveragedModel, get_ema_multi_avg_fn
 from src.utils.evaluation import AP_partial, spearman_correlation, showCM
 from sklearn.metrics import accuracy_score, multilabel_confusion_matrix, classification_report
@@ -70,9 +70,9 @@ def main():
     if args.backbone is not None:
       test_dataset = CUFED(root_dir=args.dataset_path, split_dir=args.split_path, is_train=False, img_size=args.img_size, album_clip_length=args.album_clip_length, ext_model=model.feature_extraction)
     elif args.use_clip:
-      test_dataset = CUFED_VIT_CLIP(root_dir=args.dataset_path, feats_dir=args.feats_dir, split_dir=args.split_path, is_train=False)
+      test_dataset = CUFED_VIT_CLIP(root_dir=args.dataset_path, feats_dir=args.feats_dir, split_dir=args.split_path, album_clip_length=args.album_clip_length, is_train=False)
     else:
-      test_dataset = CUFED_VIT(root_dir=args.dataset_path, feats_dir=args.feats_dir, split_dir=args.split_path, is_train=False)
+      test_dataset = CUFED_VIT(root_dir=args.dataset_path, feats_dir=args.feats_dir, split_dir=args.split_path, album_clip_length=args.album_clip_length, is_train=False)
   else:
     exit("Unknown dataset!")
      
