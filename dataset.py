@@ -120,10 +120,11 @@ class CUFED_VIT(Dataset):
             importances[i] = img_score_dict[image]
         return importances
 
-    def __init__(self, root_dir, feats_dir, split_dir, is_train=True):
+    def __init__(self, root_dir, feats_dir, split_dir, album_clip_length=30, is_train=True):
         self.root_dir = root_dir
         self.feats_dir = feats_dir
         self.global_folder = 'vit_global'
+        self.album_clip_length = album_clip_length
         
         if is_train:
             self.phase = 'train'
@@ -170,7 +171,7 @@ class CUFED_VIT(Dataset):
         name = self.videos[idx]
 
         global_path = os.path.join(self.feats_dir, self.global_folder, name + '.npy')
-        feat_global = np.load(global_path)
+        feat_global = np.load(global_path)[self.album_clip_length]
         label = self.labels[idx, :]
 
         album_imgs = self.album_imgs[name]
@@ -201,10 +202,11 @@ class CUFED_VIT_CLIP(Dataset):
             importance[i] = img_to_score[image[:-4]]
         return importance
 
-    def __init__(self, root_dir, feats_dir, split_dir, is_train=True):
+    def __init__(self, root_dir, feats_dir, split_dir, album_clip_length=30, is_train=True):
         self.root_dir = root_dir
         self.feats_dir = feats_dir
         self.global_folder = 'clip_global'
+        self.album_clip_length = album_clip_length
         
         if is_train:
             self.phase = 'train'
@@ -251,7 +253,7 @@ class CUFED_VIT_CLIP(Dataset):
         name = self.videos[idx]
 
         global_path = os.path.join(self.feats_dir, self.global_folder, name + '.npy')
-        feat_global = np.load(global_path)
+        feat_global = np.load(global_path)[:self.album_clip_length]
         label = self.labels[idx, :]
 
         album_imgs = self.album_imgs[name]

@@ -2,7 +2,7 @@ import time
 import torch
 import numpy as np
 import torch.nn as nn
-from dataset import CUFED_VIT_CLIP
+from dataset import CUFED, CUFED_VIT, CUFED_VIT_CLIP
 from torch.utils.data import DataLoader
 from models.models import MTResnetAggregate
 from options.test_options import TestOptions
@@ -24,7 +24,7 @@ def evaluate(model, test_dataset, test_loader, device):
     for batch in test_loader:
       feats, _, importances = batch
       feats = feats.to(device)
-      logits, attention, imp = model(feats)
+      logits, attention = model(feats)
       shape = logits.shape[0]
       scores[gidx:gidx+shape, :] = logits.cpu()
       gidx += shape
@@ -38,8 +38,16 @@ def evaluate(model, test_dataset, test_loader, device):
 
     scores = scores.numpy()
     preds = preds.numpy()
-    if preds.sum() == 0:
-        preds[np.argmax(scores)] = 1
+    
+    # Ensure no row has all zeros
+    for i in range(preds.shape[0]):
+        if np.sum(preds[i]) == 0:
+            preds[i][np.argmax(scores[i])] = 1
+
+    # inaccurate albums
+    fidx = ~np.all(preds == test_dataset.labels, axis=1)
+    f_albums = np.array(test_dataset.videos)[fidx]
+    print('inaccurate albums', f_albums)
 
     attention_tensor = torch.cat(attentions).to(device)
     importance_labels = torch.cat(importance_labels).to(device)
@@ -49,7 +57,7 @@ def evaluate(model, test_dataset, test_loader, device):
     cr = classification_report(test_dataset.labels, preds)
 
     map_micro, map_macro = AP_partial(test_dataset.labels, scores)[1:3]
-    spearman = spearman_correlation(attention_tensor[:, 0, 1:], importance_labels) # debug lay tu 0 hay 1
+    spearman = spearman_correlation(attention_tensor[:, 0, 1:], importance_labels)
 
     return map_micro, map_macro, acc, spearman, cms, cr
 
@@ -59,7 +67,12 @@ def main():
   model = MTResnetAggregate(args)
     
   if args.dataset == 'cufed':
-    test_dataset = CUFED_VIT_CLIP(root_dir=args.dataset_path, feats_dir=args.feats_dir, split_dir=args.split_path, is_train=False)
+    if args.backbone is not None:
+      test_dataset = CUFED(root_dir=args.dataset_path, split_dir=args.split_path, is_train=False, img_size=args.img_size, album_clip_length=args.album_clip_length, ext_model=model.feature_extraction)
+    elif args.use_clip:
+      test_dataset = CUFED_VIT_CLIP(root_dir=args.dataset_path, feats_dir=args.feats_dir, split_dir=args.split_path, is_train=False)
+    else:
+      test_dataset = CUFED_VIT(root_dir=args.dataset_path, feats_dir=args.feats_dir, split_dir=args.split_path, is_train=False)
   else:
     exit("Unknown dataset!")
      
@@ -80,7 +93,7 @@ def main():
   map_micro, map_macro, acc, spearman, cms, cr = evaluate(model, test_dataset, test_loader, device)
   t1 = time.perf_counter()
 
-  print("map_micro={} map_macro={} accuracy={} spearman={} dt={:.2f}sec".format(map_micro, map_macro, acc * 100, spearman, t1 - t0))
+  print("map_micro={:.2f} map_macro={:.2f} accuracy={:.2f} spearman={:.3f} dt={:.2f}sec".format(map_micro, map_macro, acc * 100, spearman, t1 - t0))
   print(cr)
   showCM(cms)
 
