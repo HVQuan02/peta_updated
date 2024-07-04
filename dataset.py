@@ -7,14 +7,20 @@ from PIL import Image
 from torch.utils.data import Dataset
 
 
-class CUFED(Dataset):
+class CUFED_BASE(Dataset):
     event_labels = ['Architecture', 'BeachTrip', 'Birthday', 'BusinessActivity',
                     'CasualFamilyGather', 'Christmas', 'Cruise', 'Graduation',
                     'GroupActivity', 'Halloween', 'Museum', 'NatureTrip',
                     'PersonalArtActivity', 'PersonalMusicActivity', 'PersonalSports',
                     'Protest', 'ReligiousActivity', 'Show', 'Sports', 'ThemePark',
                     'UrbanTrip', 'Wedding', 'Zoo']
+    
+    NUM_CLASS = len(event_labels)
+    NUM_FRAMES = 30
+    NUM_BOXES = 50
 
+
+class CUFED(CUFED_BASE):
     def get_album(self, album_path, album_importance, album_clip_length, img_size, transforms):
         img_score_dict = {}
         for _, image, score in album_importance:
@@ -99,17 +105,8 @@ class CUFED(Dataset):
         return album_tensor, self.labels[idx], importance_scores
     
 
-class CUFED_VIT(Dataset):
-    NUM_CLASS = 23
-    NUM_FRAMES = 30
-    NUM_BOXES = 50
+class CUFED_VIT(CUFED_BASE):
     NUM_FEATS = 768
-    event_labels = ['Architecture', 'BeachTrip', 'Birthday', 'BusinessActivity',
-                    'CasualFamilyGather', 'Christmas', 'Cruise', 'Graduation',
-                    'GroupActivity', 'Halloween', 'Museum', 'NatureTrip',
-                    'PersonalArtActivity', 'PersonalMusicActivity', 'PersonalSports',
-                    'Protest', 'ReligiousActivity', 'Show', 'Sports', 'ThemePark',
-                    'UrbanTrip', 'Wedding', 'Zoo']
 
     def get_album_importance(self, album_imgs, album_importance):
         img_score_dict = {}
@@ -181,17 +178,8 @@ class CUFED_VIT(Dataset):
         return feat_global, label, importance
     
 
-class CUFED_VIT_CLIP(Dataset):
-    NUM_CLASS = 23
-    NUM_FRAMES = 30
-    NUM_BOXES = 50
+class CUFED_VIT_CLIP(CUFED_BASE):
     NUM_FEATS = 1024
-    event_labels = ['Architecture', 'BeachTrip', 'Birthday', 'BusinessActivity',
-                    'CasualFamilyGather', 'Christmas', 'Cruise', 'Graduation',
-                    'GroupActivity', 'Halloween', 'Museum', 'NatureTrip',
-                    'PersonalArtActivity', 'PersonalMusicActivity', 'PersonalSports',
-                    'Protest', 'ReligiousActivity', 'Show', 'Sports', 'ThemePark',
-                    'UrbanTrip', 'Wedding', 'Zoo']
 
     def get_album_importance(self, album_imgs, album_importance):
         img_to_score = {}
@@ -262,3 +250,65 @@ class CUFED_VIT_CLIP(Dataset):
         importance = self.get_album_importance(album_imgs, album_importance)
 
         return feat_global, label, importance
+    
+
+class PEC_BASE(Dataset):
+    event_labels = ['birthday', 'children_birthday', 'christmas', 'concert', 'cruise', 'easter', 'exhibition', 'graduation', 'halloween', 'hiking', 'road_trip', 'saint_patricks_day', 'skiing', 'wedding']
+
+    NUM_CLASS = len(event_labels)
+    NUM_FRAMES = 30
+    NUM_BOXES = 50
+
+
+class PEC_VIT_CLIP(PEC_BASE):
+    NUM_FEATS = 1024
+
+    def get_lbl_to_idx(self):
+        lbl_to_idx = {}
+        for i, lbl in enumerate(self.event_labels):
+            lbl_to_idx[lbl] = i
+        return lbl_to_idx
+
+    def __init__(self, root_dir, feats_dir, split_dir, is_train=True):
+        self.root_dir = root_dir
+        self.feats_dir = feats_dir
+        self.split_dir = split_dir
+
+        self.global_dir = 'clip_global'
+
+        if is_train:
+            self.phase = 'train'
+        else:
+            self.phase = 'test'
+
+        if self.phase == 'train':
+            split_path = os.path.join(self.split_dir, 'train.txt')
+        else:
+            split_path = os.path.join(self.split_dir, 'test.txt')
+        
+        with open(split_path, 'r') as f:
+            lines = f.readlines()
+        label_albums = [line.strip() for line in lines]
+        
+        albums = []
+        lbl_to_idx = self.get_lbl_to_idx()
+        lbl_oh = np.zeros((len(label_albums), self.NUM_CLASS), dtype=np.float32)
+
+        for i, label_album in enumerate(label_albums):
+            label, album = label_album.split('/')
+            lbl_oh[i][lbl_to_idx[label]] = 1
+            albums.append(album)
+            
+        self.albums = albums
+        self.labels = lbl_oh
+        
+    def __len__(self):
+        return len(self.albums)
+    
+    def __getitem__(self, idx):
+        album = self.albums[idx]
+        
+        feat_global = np.load(os.path.join(self.feats_dir, self.global_dir, album + '.npy'))
+        label = self.labels[idx]
+
+        return feat_global, label

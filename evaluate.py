@@ -5,7 +5,7 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 from models.models import MTResnetAggregate
 from options.test_options import TestOptions
-from dataset import CUFED, CUFED_VIT, CUFED_VIT_CLIP
+from dataset import CUFED, CUFED_VIT, CUFED_VIT_CLIP, PEC_VIT_CLIP
 from torch.optim.swa_utils import AveragedModel, get_ema_multi_avg_fn
 from src.utils.evaluation import AP_partial, spearman_correlation, showCM
 from sklearn.metrics import accuracy_score, multilabel_confusion_matrix, classification_report
@@ -17,12 +17,16 @@ def evaluate(model, test_dataset, test_loader, device):
   model.eval()
   gidx = 0
   attentions = []
+  is_pec = isinstance(test_dataset, PEC_VIT_CLIP)
   importance_labels = []
   scores = torch.zeros((len(test_dataset), len(test_dataset.event_labels)), dtype=torch.float32)
   
   with torch.no_grad():
     for batch in test_loader:
-      feats, _, importances = batch
+      if is_pec:
+        feats, _ = batch
+      else:
+        feats, _, importances = batch
       feats = feats.to(device)
       logits, attention = model(feats)
       shape = logits.shape[0]
@@ -31,23 +35,33 @@ def evaluate(model, test_dataset, test_loader, device):
       attentions.append(attention)
       importance_labels.append(importances)
 
-    m = nn.Sigmoid()
-    preds = m(scores)
-    preds[preds >= args.threshold] = 1
-    preds[preds < args.threshold] = 0
+    if is_pec:
+        scores = scores.numpy()
+        preds = np.zeros(scores.shape, dtype=np.float32)
 
-    scores = scores.numpy()
-    preds = preds.numpy()
-    
-    # Ensure no row has all zeros
-    for i in range(preds.shape[0]):
+        # Find the index of the maximum value along each row
+        max_indices = np.argmax(scores, axis=1)
+
+        # Set the corresponding elements in 'preds' to 1
+        preds[np.arange(preds.shape[0]), max_indices] = 1
+    else:
+      m = nn.Sigmoid()
+      preds = m(scores)
+      preds[preds >= args.threshold] = 1
+      preds[preds < args.threshold] = 0
+
+      scores = scores.numpy()
+      preds = preds.numpy()
+      
+      # Ensure no row has all zeros
+      for i in range(preds.shape[0]):
         if np.sum(preds[i]) == 0:
             preds[i][np.argmax(scores[i])] = 1
 
     # inaccurate albums
-    fidx = ~np.all(preds == test_dataset.labels, axis=1)
-    f_albums = np.array(test_dataset.videos)[fidx]
-    print('inaccurate albums', f_albums)
+    # fidx = ~np.all(preds == test_dataset.labels, axis=1)
+    # f_albums = np.array(test_dataset.videos)[fidx]
+    # print('inaccurate albums', f_albums)
 
     attention_tensor = torch.cat(attentions).to(device)
     importance_labels = torch.cat(importance_labels).to(device)

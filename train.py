@@ -3,7 +3,7 @@ import os
 import torch
 import numpy as np
 import torch.nn as nn
-from dataset import CUFED, CUFED_VIT, CUFED_VIT_CLIP
+from dataset import CUFED, CUFED_VIT, CUFED_VIT_CLIP, PEC_VIT_CLIP
 from torch.utils.data import DataLoader
 from models.models import MTResnetAggregate
 from src.utils.evaluation import AP_partial
@@ -22,7 +22,10 @@ def validate_one_epoch(model, val_dataset, val_loader, device):
   
   with torch.no_grad():
     for batch in val_loader:
-      feats, _, _ = batch
+      if isinstance(val_dataset, PEC_VIT_CLIP):
+        feats, _ = batch
+      else:
+        feats, _, _ = batch
       feats = feats.to(device)
       logits, _ = model(feats)
       shape = logits.shape[0]
@@ -32,12 +35,15 @@ def validate_one_epoch(model, val_dataset, val_loader, device):
   return AP_partial(val_dataset.labels, scores.numpy())[2]
 
 
-def train_one_epoch(ema_model, model, train_loader, crit, opt, sched, device):
+def train_one_epoch(ema_model, model, train_dataset, train_loader, crit, opt, sched, device):
   model.train()
   epoch_loss = 0
     
   for batch in train_loader:
-    feats, labels, _ = batch
+    if isinstance(train_dataset, PEC_VIT_CLIP):
+      feats, _ = batch
+    else:
+      feats, _, _ = batch
     feats = feats.to(device)
     labels = labels.to(device)
     opt.zero_grad()
@@ -152,7 +158,7 @@ def main():
     model = model.to(device)
 
     t0 = time.perf_counter()
-    train_loss = train_one_epoch(ema_model, model, train_loader, crit, opt, sched, device)
+    train_loss = train_one_epoch(ema_model, model, train_dataset, train_loader, crit, opt, sched, device)
     t1 = time.perf_counter()
 
     t2 = time.perf_counter()
