@@ -105,10 +105,10 @@ class fTResNet(nn.Module):
 #         return logits
 
 
-def MTResnetAggregate(args):
+def MTResnetAggregate(args, num_classes=23):
     aggregate = None
 
     model = fTResNet(encoder_name=args.backbone,
-                     num_classes=23, aggregate=aggregate, args=args)
+                     num_classes=num_classes, aggregate=aggregate, args=args)
 
     return model

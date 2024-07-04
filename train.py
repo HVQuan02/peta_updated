@@ -41,9 +41,9 @@ def train_one_epoch(ema_model, model, train_dataset, train_loader, crit, opt, sc
     
   for batch in train_loader:
     if isinstance(train_dataset, PEC_VIT_CLIP):
-      feats, _ = batch
+      feats, labels = batch
     else:
-      feats, _, _ = batch
+      feats, labels, _ = batch
     feats = feats.to(device)
     labels = labels.to(device)
     opt.zero_grad()
@@ -90,7 +90,13 @@ def main():
   if not os.path.exists(args.save_dir):
      os.mkdir(args.save_dir)
 
-  model = MTResnetAggregate(args)
+  if args.dataset == 'cufed':
+    num_classes = CUFED.NUM_CLASS
+  elif args.dataset == 'pec':
+    num_classes = PEC_VIT_CLIP.NUM_CLASS
+  else:
+    pass
+  model = MTResnetAggregate(args, num_classes)
   ema_model = AveragedModel(model, multi_avg_fn=get_ema_multi_avg_fn(0.999))
 
   if args.dataset == 'cufed':
@@ -103,12 +109,25 @@ def main():
     else:
       train_dataset = CUFED_VIT(root_dir=args.dataset_path, feats_dir=args.feats_dir, split_dir=args.split_path, album_clip_length=args.album_clip_length)
       val_dataset = CUFED_VIT(root_dir=args.dataset_path, feats_dir=args.feats_dir, split_dir=args.split_path, album_clip_length=args.album_clip_length, is_train=False)
+    train_loader = DataLoader(train_dataset, batch_size=args.train_batch_size, num_workers=args.num_workers)
+    val_loader = DataLoader(val_dataset, batch_size=args.val_batch_size, num_workers=args.num_workers)
+  elif args.dataset == 'pec':
+    if args.backbone is not None:
+        pass
+#       train_dataset = CUFED(root_dir=args.dataset_path, split_dir=args.split_path, img_size=args.img_size, album_clip_length=args.album_clip_length, ext_model=model.feature_extraction)
+#       val_dataset = CUFED(root_dir=args.dataset_path, split_dir=args.split_path, is_train=False, img_size=args.img_size, album_clip_length=args.album_clip_length, ext_model=model.feature_extraction)
+    elif args.use_clip:
+      train_dataset = PEC_VIT_CLIP(root_dir=args.dataset_path, feats_dir=args.feats_dir, split_dir=args.split_path, album_clip_length=args.album_clip_length)
+      val_dataset = PEC_VIT_CLIP(root_dir=args.dataset_path, feats_dir=args.feats_dir, split_dir=args.split_path, album_clip_length=args.album_clip_length, is_train=False)
+    else:
+        pass
+#       train_dataset = CUFED_VIT(root_dir=args.dataset_path, feats_dir=args.feats_dir, split_dir=args.split_path, album_clip_length=args.album_clip_length)
+#       val_dataset = CUFED_VIT(root_dir=args.dataset_path, feats_dir=args.feats_dir, split_dir=args.split_path, album_clip_length=args.album_clip_length, is_train=False)
+    train_loader = DataLoader(train_dataset, batch_size=args.train_batch_size, num_workers=args.num_workers, shuffle=True)
+    val_loader = DataLoader(val_dataset, batch_size=args.val_batch_size, num_workers=args.num_workers)
   else:
     exit("Unknown dataset!")
      
-  train_loader = DataLoader(train_dataset, batch_size=args.train_batch_size, num_workers=args.num_workers)
-  val_loader = DataLoader(val_dataset, batch_size=args.val_batch_size, num_workers=args.num_workers)
-
   if args.verbose:
     print("running on {}".format(device))
     print("train_set={}".format(len(train_dataset)))

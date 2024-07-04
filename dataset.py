@@ -269,10 +269,11 @@ class PEC_VIT_CLIP(PEC_BASE):
             lbl_to_idx[lbl] = i
         return lbl_to_idx
 
-    def __init__(self, root_dir, feats_dir, split_dir, is_train=True):
+    def __init__(self, root_dir, feats_dir, split_dir, album_clip_length=30, is_train=True):
         self.root_dir = root_dir
         self.feats_dir = feats_dir
         self.split_dir = split_dir
+        self.album_clip_length = album_clip_length
 
         self.global_dir = 'clip_global'
 
@@ -308,7 +309,7 @@ class PEC_VIT_CLIP(PEC_BASE):
     def __getitem__(self, idx):
         album = self.albums[idx]
         
-        feat_global = np.load(os.path.join(self.feats_dir, self.global_dir, album + '.npy'))
+        feat_global = np.load(os.path.join(self.feats_dir, self.global_dir, album + '.npy'))[:self.album_clip_length]
         label = self.labels[idx]
 
         return feat_global, label

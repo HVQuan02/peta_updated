@@ -32,8 +32,9 @@ def evaluate(model, test_dataset, test_loader, device):
       shape = logits.shape[0]
       scores[gidx:gidx+shape, :] = logits.cpu()
       gidx += shape
-      attentions.append(attention)
-      importance_labels.append(importances)
+      if not is_pec:
+          attentions.append(attention)
+          importance_labels.append(importances)
 
     if is_pec:
         scores = scores.numpy()
@@ -62,23 +63,23 @@ def evaluate(model, test_dataset, test_loader, device):
     # fidx = ~np.all(preds == test_dataset.labels, axis=1)
     # f_albums = np.array(test_dataset.videos)[fidx]
     # print('inaccurate albums', f_albums)
-
-    attention_tensor = torch.cat(attentions).to(device)
-    importance_labels = torch.cat(importance_labels).to(device)
     
     acc = accuracy_score(test_dataset.labels, preds)
     cms = multilabel_confusion_matrix(test_dataset.labels, preds)
     cr = classification_report(test_dataset.labels, preds)
 
     map_micro, map_macro = AP_partial(test_dataset.labels, scores)[1:3]
-    spearman = spearman_correlation(attention_tensor[:, 0, 1:], importance_labels)
+    
+    if not is_pec:
+        attention_tensor = torch.cat(attentions).to(device)
+        importance_labels = torch.cat(importance_labels).to(device)
+        spearman = spearman_correlation(attention_tensor[:, 0, 1:], importance_labels)
 
-    return map_micro, map_macro, acc, spearman, cms, cr
+        return map_micro, map_macro, acc, spearman, cms, cr
+    return map_micro, map_macro, acc, cms, cr
 
 def main():
   device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-
-  model = MTResnetAggregate(args)
     
   if args.dataset == 'cufed':
     if args.backbone is not None:
@@ -87,15 +88,23 @@ def main():
       test_dataset = CUFED_VIT_CLIP(root_dir=args.dataset_path, feats_dir=args.feats_dir, split_dir=args.split_path, album_clip_length=args.album_clip_length, is_train=False)
     else:
       test_dataset = CUFED_VIT(root_dir=args.dataset_path, feats_dir=args.feats_dir, split_dir=args.split_path, album_clip_length=args.album_clip_length, is_train=False)
+  elif args.dataset == 'pec':
+    if args.backbone is not None:
+        pass
+    elif args.use_clip:
+      test_dataset = PEC_VIT_CLIP(root_dir=args.dataset_path, feats_dir=args.feats_dir, split_dir=args.split_path, album_clip_length=args.album_clip_length, is_train=False)
+    else:
+        pass
   else:
     exit("Unknown dataset!")
      
   test_loader = DataLoader(test_dataset, batch_size=args.test_batch_size, num_workers=args.num_workers)
-
+    
   if args.verbose:
     print("running on {}".format(device))
     print("test_set = {}".format(len(test_dataset)))
 
+  model = MTResnetAggregate(args, test_dataset.NUM_CLASS)
   if args.ema:
     model = AveragedModel(model, multi_avg_fn=get_ema_multi_avg_fn(0.999))
   state = torch.load(args.model_path, map_location=device)
@@ -104,10 +113,16 @@ def main():
   model = model.to(device)
   
   t0 = time.perf_counter()
-  map_micro, map_macro, acc, spearman, cms, cr = evaluate(model, test_dataset, test_loader, device)
+  if args.dataset == 'cufed':
+      map_micro, map_macro, acc, spearman, cms, cr = evaluate(model, test_dataset, test_loader, device)
+  else:
+      map_micro, map_macro, acc, cms, cr = evaluate(model, test_dataset, test_loader, device)
   t1 = time.perf_counter()
 
-  print("map_micro={:.2f} map_macro={:.2f} accuracy={:.2f} spearman={:.3f} dt={:.2f}sec".format(map_micro, map_macro, acc * 100, spearman, t1 - t0))
+  if args.dataset == 'cufed':
+    print("map_micro={:.2f} map_macro={:.2f} accuracy={:.2f} spearman={:.3f} dt={:.2f}sec".format(map_micro, map_macro, acc * 100, spearman, t1 - t0))
+  else: 
+    print("map_micro={:.2f} map_macro={:.2f} accuracy={:.2f} dt={:.2f}sec".format(map_micro, map_macro, acc * 100, t1 - t0))
   print(cr)
   showCM(cms)
 
