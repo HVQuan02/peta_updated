@@ -1,4 +1,5 @@
 import os
+import cv2
 import json
 import torch
 import numpy as np
@@ -69,7 +70,7 @@ def get_album(args, device):
     return global_feat, t_importance, tensor_batch, montage
 
 
-def inference(global_feat, t_importance, tensor_batch, model, classes_list, args, nrow=5):
+def inference(global_feat, t_importance, tensor_batch, model, classes_list, output_path, args, nrow=5):
     if global_feat is not None:
         logits, attention = model(global_feat)
     else:
@@ -88,6 +89,8 @@ def inference(global_feat, t_importance, tensor_batch, model, classes_list, args
     worst_idx = np.argsort(np_importance)
     album_np = tensor_batch.squeeze(0).cpu().detach().numpy()
     top_frames = album_np[top_idx][:args.n_frames]
+    for i, top_frame in enumerate(top_frames):
+        save_image(top_frame, 'salient_{}'.format(i + 1), output_path)
     worst_frames = album_np[worst_idx][:args.n_frames]
     top_montage = make_grid(torch.from_numpy(top_frames), nrow=nrow).permute(1, 2, 0).cpu()
     worst_montage = make_grid(torch.from_numpy(worst_frames), nrow=nrow).permute(1, 2, 0).cpu()
@@ -95,15 +98,15 @@ def inference(global_feat, t_importance, tensor_batch, model, classes_list, args
     # Top-k
     detected_classes = np.array(classes_list)[idx_sort][:args.top_k]
     scores = np_output[idx_sort][: args.top_k]
-    print('detected_classes', detected_classes)
-    print('scores', scores)
+#     print('detected_classes', detected_classes)
+#     print('scores', scores)
     # Threshold
     idx_th = scores > args.threshold
 
     return detected_classes[idx_th], scores[idx_th], top_montage, worst_montage
 
 
-def display_image(montage, tags, filename, path_dest, dpi=300, file_format='png'):
+def display_montage(montage, tags, filename, path_dest, dpi=300, file_format='jpg'):
     ext = '.' + file_format
     if not os.path.exists(path_dest):
         os.makedirs(path_dest)
@@ -113,6 +116,15 @@ def display_image(montage, tags, filename, path_dest, dpi=300, file_format='png'
     plt.title(tags)
     plt.imshow(montage)
     plt.savefig(os.path.join(path_dest, filename + ext), dpi=dpi, format=file_format, bbox_inches='tight', pad_inches=0)
+
+
+def save_image(image, filename, path_dest, file_format='jpg'):
+    image = np.transpose(image, (1, 2, 0)) * 255
+    image = image[:, :, ::-1].copy()
+    ext = '.' + file_format
+    if not os.path.exists(path_dest):
+        os.makedirs(path_dest)
+    cv2.imwrite(os.path.join(path_dest, filename + ext), image)
 
 
 def main():
@@ -141,12 +153,12 @@ def main():
     global_feat, t_importance, tensor_batch, montage = get_album(args, device)
 
     # Inference
-    tags, confs, top_montage, worst_montage = inference(global_feat, t_importance, tensor_batch, model, classes_list, args)
+    tags, confs, top_montage, worst_montage = inference(global_feat, t_importance, tensor_batch, model, classes_list, output_path, args)
 
     # Visualization
-    display_image(montage, 'Predicted classes: {}'.format(tags), 'montage', output_path)
-    display_image(top_montage, None, 'best_montage', output_path)
-    display_image(worst_montage, None, 'worst_montage', output_path)
+#     display_montage(montage, 'Predicted classes: {}'.format(tags), 'montage', output_path)
+#     display_montage(top_montage, None, 'best_montage', output_path)
+#     display_montage(worst_montage, None, 'worst_montage', output_path)
 
 
 if __name__ == '__main__':
